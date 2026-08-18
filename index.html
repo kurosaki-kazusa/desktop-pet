@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 悬浮桌面宠物</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="stage">
+
+  <!-- 提醒气泡（提醒触发时从宠物头顶冒出） -->
+  <div id="notify-bubble" class="card hidden interactive">
+    <span class="notify-icon">🔔</span>
+    <span id="notify-text"></span>
+    <button id="notify-ok" class="btn primary small">知道了</button>
+  </div>
+
+  <!-- 交互面板（右键宠物弹出：大模型对话，上方回复气泡 + 底部输入框） -->
+  <div id="bubble" class="card hidden interactive">
+    <div class="bubble-header">
+      <span class="bubble-title">💬 和桌宠聊天</span>
+      <button id="bubble-close" class="btn icon" title="关闭">✕</button>
+    </div>
+
+    <!-- 对话区：首次打开显示默认问候语，后续消息持续追加（后续接入大模型 agent） -->
+    <div id="chat-log" class="chat-log"></div>
+
+    <!-- 输入区：宠物头像 + 输入框 + 发送 -->
+    <div class="chat-input-row">
+      <span class="chat-avatar">🐱</span>
+      <input id="chat-input" class="input chat-input" maxlength="500" placeholder="和桌宠说点什么…">
+      <button id="chat-send" class="btn primary small">发送</button>
+    </div>
+    <div class="bubble-arrow"></div>
+  </div>
+
+  <!-- 配置中心（双击宠物打开：大配置框，管理全部常用命令 + 提醒） -->
+  <div id="panel" class="card hidden interactive">
+    <div class="panel-header">
+      <div class="panel-top">
+        <span class="panel-title">⚙️ 配置中心</span>
+        <button id="panel-close" class="btn icon" title="关闭">✕</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="commands">常用命令</button>
+        <button class="tab" data-tab="reminders">提醒管理</button>
+      </div>
+    </div>
+
+    <!-- Tab 1：全部常用命令管理（跨行长文本 + 置顶勾选，勾选的条目排在最前） -->
+    <div id="ptab-commands" class="tab-pane">
+      <div class="cmd-widget" id="cmd-widget-panel"></div>
+    </div>
+
+    <!-- Tab 2：提醒管理（由 JS 工厂生成，与气泡 Tab 复用同一组件） -->
+    <div id="ptab-reminders" class="tab-pane hidden">
+      <div class="rem-widget" id="rem-widget-panel"></div>
+    </div>
+
+    <!-- 底部：退出宠物（v2.0 从右键复制看板移入配置中心） -->
+    <div class="panel-footer">
+      <button id="app-quit" class="btn small danger">退出宠物</button>
+    </div>
+  </div>
+
+  <!-- 宠物本体 -->
+  <div id="pet" class="anim-idle interactive" title="左键点我玩 · 双击打开面板 · 右键打开菜单">🐱</div>
+
+</div>
+
+<!-- 轻提示 -->
+<div id="toast" class="hidden"></div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

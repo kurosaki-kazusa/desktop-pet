@@ -1,0 +1,321 @@
+/* styles.css · AI 悬浮桌面宠物 —— 设计规范 v1.1 */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent;      /* 窗口透明前提：全链路无底色 */
+  overflow: hidden;
+  user-select: none;
+  font-family: "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  color: #333;
+}
+
+#stage { position: relative; width: 100vw; height: 100vh; }
+
+.hidden { display: none !important; }
+
+/* ---------- 宠物本体 ---------- */
+#pet {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  font-size: 128px;
+  line-height: 1;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.18));
+}
+
+/* 状态机动画（class 约定：anim-idle / anim-* / anim-remind） */
+.anim-idle   { animation: breathe 3s ease-in-out infinite; }
+.anim-jump   { animation: jump 0.6s ease 2; }
+.anim-spin   { animation: spin 1.1s ease; }
+.anim-wiggle { animation: wiggle 0.3s ease 4; }
+.anim-remind { animation: bounce 0.5s ease infinite alternate; }
+
+@keyframes breathe {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.05) translateY(-3px); }
+}
+@keyframes jump {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-34px); }
+}
+@keyframes spin {
+  from { transform: translateX(-50%) rotate(0); }
+  to   { transform: translateX(-50%) rotate(360deg); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: translateX(-50%) rotate(0); }
+  25%      { transform: translateX(-50%) rotate(-10deg); }
+  75%      { transform: translateX(-50%) rotate(10deg); }
+}
+@keyframes bounce {
+  from { transform: translateX(-50%) translateY(0) scale(1.02); }
+  to   { transform: translateX(-50%) translateY(-12px) scale(1.06); }
+}
+
+/* ---------- 通用卡片 ---------- */
+.card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- 会话气泡 ---------- */
+#bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 156px;
+  transform: translateX(-50%);
+  width: 380px;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  animation: fadeIn 150ms ease-out;
+}
+.bubble-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border: 8px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.96);
+  border-bottom: none;
+}
+.bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.bubble-title { font-size: 15px; font-weight: bold; }
+.tabs { display: flex; gap: 4px; }
+.tab {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #666;
+}
+.tab.active { background: #5B8DEF; color: #fff; }
+.tab-pane { overflow-y: auto; max-height: 300px; }
+/* ---------- 交互面板（右键对话，v2.0） ---------- */
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 2px 4px 8px;
+}
+.chat-msg { display: flex; gap: 6px; align-items: flex-end; }
+.chat-msg.user { justify-content: flex-end; }
+.chat-avatar { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.chat-bubble {
+  background: #f2f6ff;
+  border-radius: 12px 12px 12px 2px;
+  padding: 7px 11px;
+  max-width: 78%;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.chat-msg.user .chat-bubble {
+  background: #5B8DEF;
+  color: #fff;
+  border-radius: 12px 12px 2px 12px;
+}
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+}
+.chat-input-row .chat-avatar { font-size: 26px; }
+.chat-input { flex: 1; }
+
+/* ---------- 配置中心（独立窗口 ?mode=config 居中铺开） ---------- */
+#panel {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  width: 640px;
+  max-height: 640px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 150ms ease-out;
+}
+/* 配置中心独立窗口：面板在窗口中垂直居中（宠物窗口面板永远隐藏，此样式只在配置窗口生效） */
+body.config-mode #panel {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: none; /* 避免 fadeIn 的 translateX 关键帧覆盖居中 transform */
+  max-height: calc(100vh - 32px);
+}
+.panel-header { margin-bottom: 8px; }
+.drag-handle { cursor: move; } /* 配置中心面板头部可拖动窗口 */
+.panel-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.panel-title { font-size: 18px; font-weight: bold; }
+#panel .tab-pane { overflow-y: auto; max-height: 540px; }
+#rem-widget-panel { overflow-y: auto; max-height: 490px; }
+
+/* ---------- 提醒气泡（头顶提示） ---------- */
+#notify-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 156px;
+  transform: translateX(-50%);
+  max-width: 400px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid #FF7A59;
+  animation: fadeIn 150ms ease-out;
+}
+#notify-text { flex: 1; word-break: break-all; }
+.notify-icon { font-size: 20px; }
+
+/* ---------- 列表 ---------- */
+.list { list-style: none; }
+.list-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-item:hover { background: #f2f6ff; }
+.item-main { flex: 1; min-width: 0; }
+.item-title { font-weight: bold; }
+.item-sub {
+  font-family: Consolas, monospace;
+  color: #555;
+  white-space: pre-wrap;   /* 支持跨行长命令完整显示 */
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+  cursor: pointer;
+}
+.item-sub:hover { color: #5B8DEF; }
+.pin-badge { font-size: 12px; }
+.rem-text { word-break: break-all; }
+.rem-meta { color: #999; font-size: 14px; white-space: nowrap; }
+.item-actions { display: none; gap: 2px; }
+.list-item:hover .item-actions { display: flex; }
+.rem-badge { font-size: 14px; }
+
+/* ---------- 表单与按钮 ---------- */
+.form {
+  background: #f7f9fc;
+  border-radius: 8px;
+  padding: 8px;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.input, select.input, textarea.input {
+  border: 1px solid #d9e1ec;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+}
+textarea.input {
+  resize: vertical;      /* 只允许纵向拉高，跨行输入更从容 */
+  min-height: 72px;
+  line-height: 1.5;
+}
+.input:focus { border-color: #5B8DEF; }
+.mono { font-family: Consolas, monospace; }
+.form-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.btn {
+  border: 1px solid #d9e1ec;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #444;
+}
+.btn:hover { border-color: #5B8DEF; color: #5B8DEF; }
+.btn.primary { background: #5B8DEF; border-color: #5B8DEF; color: #fff; }
+.btn.primary:hover { background: #4a7de0; }
+.btn.danger { color: #FF7A59; }
+.btn.danger:hover { border-color: #FF7A59; }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.btn.icon { border: none; background: transparent; color: #999; padding: 2px 6px; }
+.btn.icon:hover { color: #FF7A59; }
+.btn.add {
+  width: 100%;
+  border: 1px dashed #b9c6da;
+  background: transparent;
+  color: #5B8DEF;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.btn.add:hover { background: #f2f6ff; }
+
+.empty { color: #aaa; text-align: center; padding: 16px 0; }
+
+/* ---------- 置顶勾选 ---------- */
+.pin-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---------- 配置中心底部（退出宠物，v2.0） ---------- */
+.panel-footer {
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+  padding-top: 8px;
+  text-align: right;
+}
+
+/* ---------- 命令搜索（配置中心） ---------- */
+.search-input {
+  margin-bottom: 8px;
+}
+
+/* ---------- 轻提示 ---------- */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  z-index: 99;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
