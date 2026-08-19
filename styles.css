@@ -24,11 +24,13 @@ html, body {
   font-size: 128px;
   line-height: 1;
   cursor: pointer;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,.18));
+  /* v2.4 性能优化：合成层预建（配合无限呼吸动画减少反复光栅化）+ 阴影减负（blur 6px→4px、透明度减淡，降低每帧滤镜重算成本） */
+  will-change: transform;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,.12));
 }
 
 /* 状态机动画（class 约定：anim-idle / anim-* / anim-remind） */
-.anim-idle   { animation: breathe 3s ease-in-out infinite; }
+.anim-idle   { animation: breathe 5s ease-in-out infinite; } /* v2.4：3s→5s 降低重绘频率，视觉更柔和 */
 .anim-jump   { animation: jump 0.6s ease 2; }
 .anim-spin   { animation: spin 1.1s ease; }
 .anim-wiggle { animation: wiggle 0.3s ease 4; }
@@ -293,13 +295,48 @@ textarea.input {
   border-top: 1px solid #eee;
   margin-top: 8px;
   padding-top: 8px;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* v2.4：置顶开关（panel-footer 左侧，与右侧退出按钮对应） */
+.top-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
 }
 
 /* ---------- 命令搜索（配置中心） ---------- */
 .search-input {
   margin-bottom: 8px;
 }
+
+/* ---------- 大模型流式回复（v2.3：思考区/光标/错误态） ---------- */
+.chat-thinking {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-thinking::before { content: '💭 '; }
+.chat-text { white-space: pre-wrap; word-break: break-word; }
+.chat-cursor {
+  color: #5B8DEF;
+  animation: cursorBlink 1s steps(2) infinite;
+}
+@keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.chat-err { color: #FF7A59; font-size: 12px; }
+
+/* ---------- 大模型配置页签（v2.3） ---------- */
+.chat-hint { font-size: 12px; color: #999; line-height: 1.6; margin-bottom: 8px; }
+.field-label { font-size: 13px; color: #666; margin: 4px 0 2px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------- 轻提示 ---------- */
 #toast {

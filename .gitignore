@@ -20,6 +20,9 @@ build/
 .env.local
 .env.*.local
 
+# ---------- 参考项目（仅本地参考，不提交；后续会删除） ----------
+deepseek-harness/
+
 # ---------- 临时文件 ----------
 *.tmp
 *.temp

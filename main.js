@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, clipboard, screen } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const { ChatEngine, loadEnvFrom } = require('./chat'); // v2.3 大模型会话后端（复刻 deepseek-harness 会话设计）
 
 // 统一缩放因子为 1：彻底消除 Windows 混合 DPI 下 setPosition 的隐形尺寸漂移
 // （主屏修复后副屏仍漂移的根因——缩放不同的显示器走不同的 DIP 换算路径）。
@@ -10,11 +11,14 @@ const Store = require('electron-store');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 // ---------- 数据层（electron-store） ----------
+// 大模型会话配置默认值（v2.3）：配置中心「大模型」页签填写；留空则读 .env
+const CHAT_DEFAULTS = { apiKey: '', baseUrl: '', model: '', systemPrompt: '' };
+
 const store = new Store({
   defaults: {
     reminders: [],
     commands: [],
-    settings: { windowPos: null, volume: 0.8 },
+    settings: { windowPos: null, volume: 0.8, chat: CHAT_DEFAULTS, alwaysOnTop: true },
     seeded: false
   }
 });
@@ -24,6 +28,33 @@ if (!store.get('posSchemaV2')) {
   store.set('settings.windowPos', null);
   store.set('posSchemaV2', true);
 }
+
+// ---------- 大模型会话引擎（v2.3：chat.js 流式后端，.env 填 DEEPSEEK_API_KEY 即用） ----------
+function getChatSettings() {
+  const s = store.get('settings') || {};
+  return { ...CHAT_DEFAULTS, ...(s.chat || {}) };
+}
+
+// .env 读取目录（后读覆盖先读）：项目根（开发）→ 安装目录（打包后 exe 旁）→ userData（%APPDATA%）
+// 真实环境变量（process.env）优先级最高；配置中心页签保存的值优先级又高于 .env（见 chat.js resolveConfig）
+function loadChatEnv() {
+  let env = {};
+  for (const dir of [app.getAppPath(), path.dirname(process.execPath), app.getPath('userData')]) {
+    Object.assign(env, loadEnvFrom(dir));
+  }
+  Object.assign(env, process.env);
+  return env;
+}
+const chatEnv = loadChatEnv();
+
+const chatEngine = new ChatEngine({
+  getConfig: () => ({ settings: getChatSettings(), env: chatEnv }),
+  getCatalog: () => (store.get('commands') || []).map((c) => c.title).filter(Boolean),
+  loadHistory: () => store.get('chat.history') || [],
+  saveHistory: (h) => store.set('chat.history', h),
+  loadSummary: () => store.get('chat.historySummary') || '',
+  saveSummary: (s) => store.set('chat.historySummary', s)
+});
 
 // 首次启动预置：护眼提醒 + 使用时长提醒（用户可修改间隔）
 function seedPresets() {
@@ -37,11 +68,34 @@ function seedPresets() {
 
 // ---------- 窗口 ----------
 let win = null;
+let cfgWin = null; // 配置中心独立窗口（v1.4）；顶层声明供置顶保活 keepTop/applyTop 引用
 const WIN_W = 560; // 宠物窗口尺寸（与 styles.css 的弹窗/字号配套）
 const WIN_H = 560;
 const CFG_W = 700; // 配置中心独立窗口尺寸（居中，类似应用设置窗口）
 const CFG_H = 680;
 let lastLogicalPos = null; // 主进程自维护的窗口位置（拖动期间唯一位置来源，不读 getPosition）
+
+// ---------- 置顶保活（v2.4） ----------
+// Windows TOPMOST 无绝对优先级：其他置顶窗口后来激活会盖住桌宠。
+// 方案：①创建后提升到 screen-saver 级（高于默认 floating，压过绝大多数置顶窗口）
+//      ②每 5 秒 moveTop 保活（只调 Z 序、不抢焦点、无闪烁），被盖住后自动回到最前
+//      ③配置中心加「始终置顶」开关（settings.alwaysOnTop），关闭时降级为普通窗口不保活
+function isTopEnabled() {
+  const s = store.get('settings') || {};
+  return s.alwaysOnTop !== false;
+}
+
+function keepTop() {
+  if (!isTopEnabled()) return;
+  if (win && !win.isDestroyed()) win.moveTop();
+  if (cfgWin && !cfgWin.isDestroyed()) cfgWin.moveTop();
+}
+
+function applyTop(enabled) {
+  const level = enabled ? 'screen-saver' : 'normal';
+  if (win && !win.isDestroyed()) win.setAlwaysOnTop(enabled, level);
+  if (cfgWin && !cfgWin.isDestroyed()) cfgWin.setAlwaysOnTop(enabled, level);
+}
 
 function savePos() {
   // 优先用主进程自维护的逻辑位置：Windows 混合 DPI 下 win.getPosition() 可能与
@@ -98,6 +152,7 @@ function createWindow() {
     }
   });
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  if (isTopEnabled()) win.setAlwaysOnTop(true, 'screen-saver'); // v2.4：提升置顶层级（floating→screen-saver）
   lastLogicalPos = { x: pos.x, y: pos.y };
   // 默认点击穿透；渲染层鼠标进入可交互区域时通过 IPC 动态恢复交互
   win.setIgnoreMouseEvents(true, { forward: true });
@@ -164,7 +219,7 @@ function registerIpc() {
     return {
       reminders: store.get('reminders'),
       commands,
-      settings: store.get('settings')
+      settings: { ...store.get('settings'), chat: getChatSettings() } // v2.3：chat 配置归一化后返回
     };
   });
 
@@ -211,6 +266,32 @@ function registerIpc() {
     store.set('commands', list);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
     return list;
+  });
+
+  // 大模型会话（v2.3）：流式对话入口 / 中止 / 配置保存 / 清空历史
+  ipcMain.handle('chat:send', (e, text) => {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    if (!w || w.isDestroyed()) return false;
+    return chatEngine.send(text, {
+      onChunk: (d) => { if (!w.isDestroyed()) w.webContents.send('chat:chunk', d); },
+      onDone: () => { if (!w.isDestroyed()) w.webContents.send('chat:done'); },
+      onError: (d) => { if (!w.isDestroyed()) w.webContents.send('chat:error', d); }
+    });
+  });
+  ipcMain.on('chat:abort', () => chatEngine.abort());
+  ipcMain.handle('chat:set-config', (e, cfg) => {
+    store.set('settings.chat', {
+      apiKey: String(cfg.apiKey || '').trim(),
+      baseUrl: String(cfg.baseUrl || '').trim(),
+      model: String(cfg.model || '').trim(),
+      systemPrompt: String(cfg.systemPrompt || '').trim()
+    });
+    broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
+    return true;
+  });
+  ipcMain.handle('chat:clear-history', () => {
+    chatEngine.clearHistory();
+    return true;
   });
 
   // 窗口控制
@@ -294,7 +375,6 @@ function registerIpc() {
 
   // 配置中心独立窗口（v1.4）：双击宠物时创建并居中于鼠标所在屏（类似应用设置窗口），
   // 宠物窗口保持原位不动；配置窗口不置穿透，✕/Esc 关闭
-  let cfgWin = null;
   function openConfigWin() {
     if (cfgWin && !cfgWin.isDestroyed()) {
       cfgWin.focus();
@@ -324,6 +404,7 @@ function registerIpc() {
       }
     });
     cfgWin.loadFile('index.html', { query: { mode: 'config' } });
+    if (isTopEnabled()) cfgWin.setAlwaysOnTop(true, 'screen-saver'); // v2.4：与宠物窗口同级保活
     cfgWin.on('closed', () => { cfgWin = null; cfgPos = null; });
   }
   ipcMain.on('window:set-config-open', (e, open) => {
@@ -332,6 +413,16 @@ function registerIpc() {
     } else if (cfgWin && !cfgWin.isDestroyed()) {
       cfgWin.close();
     }
+  });
+
+  // 置顶开关（v2.4）：配置中心「始终置顶」勾选——关闭时降级为普通窗口并停止保活，
+  // 把“压过其他置顶窗口”与“让用户主动置顶的应用盖住桌宠”的选择权交给用户
+  ipcMain.handle('window:set-always-on-top', (e, v) => {
+    const enabled = v !== false;
+    store.set('settings.alwaysOnTop', enabled);
+    applyTop(enabled);
+    broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
+    return enabled;
   });
 
   // 数据变更广播：配置窗口改动后通知宠物窗口重新拉取（排除发起者自身）
@@ -358,6 +449,7 @@ app.whenReady().then(() => {
   registerIpc();
   createWindow();
   setInterval(tick, 10000);
+  setInterval(keepTop, 5000); // v2.4：置顶保活（每 5 秒重提 Z 序，不抢焦点）
 });
 
 app.on('before-quit', savePos);

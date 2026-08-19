@@ -44,6 +44,7 @@
       <div class="tabs">
         <button class="tab active" data-tab="commands">常用命令</button>
         <button class="tab" data-tab="reminders">提醒管理</button>
+        <button class="tab" data-tab="chat">大模型</button>
       </div>
     </div>
 
@@ -57,8 +58,16 @@
       <div class="rem-widget" id="rem-widget-panel"></div>
     </div>
 
-    <!-- 底部：退出宠物（v2.0 从右键复制看板移入配置中心） -->
+    <!-- Tab 3：大模型会话配置（v2.3：Key/地址/模型/人设，留空则读 .env） -->
+    <div id="ptab-chat" class="tab-pane hidden">
+      <div class="chat-widget" id="chat-widget-panel"></div>
+    </div>
+
+    <!-- 底部：置顶开关（v2.4）+ 退出宠物（v2.0 从右键复制看板移入配置中心） -->
     <div class="panel-footer">
+      <label class="top-toggle">
+        <input type="checkbox" id="always-on-top" checked> 始终置顶
+      </label>
       <button id="app-quit" class="btn small danger">退出宠物</button>
     </div>
   </div>

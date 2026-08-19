@@ -8,7 +8,7 @@ const api = window.petAPI;
 const isConfigWindow = new URLSearchParams(location.search).get('mode') === 'config';
 if (isConfigWindow) document.body.classList.add('config-mode');
 
-let state = { reminders: [], commands: [] };
+let state = { reminders: [], commands: [], settings: {} };
 
 // ---------- 工具 ----------
 function el(tag, cls, text) {
@@ -63,6 +63,7 @@ let dragging = false;
 let dragMoved = false;
 let anchorX = 0;
 let anchorY = 0;
+let dragRafId = null; // v2.4：拖动 rAF 节流——一帧最多发一次 dragTo，把 setBounds 频率压到 60Hz 以内
 
 pet.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
@@ -77,25 +78,28 @@ document.addEventListener('mousemove', (e) => {
   if ((e.buttons & 1) === 0) {
     // 左键已松开但 mouseup 丢失（如在窗口外释放），兜底结束拖动，
     // 防止 dragging 卡死导致后续悬停时窗口被残留拖动状态驱动而漂移
-    dragging = false;
-    api.dragEnd();
+    endDrag();
     return;
   }
   if (e.screenX !== anchorX || e.screenY !== anchorY) dragMoved = true;
-  if (dragMoved) api.dragTo();
-});
-document.addEventListener('mouseup', () => {
-  if (!dragging) return;
-  dragging = false;
-  api.dragEnd();
-});
-// 窗口失焦（如 Alt+Tab 切走）时强制结束拖动，避免状态残留
-window.addEventListener('blur', () => {
-  if (dragging) {
-    dragging = false;
-    api.dragEnd();
+  // 拖动节流（v2.4）：鼠标事件频率可达 125-1000Hz，每帧只发一次 dragTo
+  if (dragMoved && !dragRafId) {
+    dragRafId = requestAnimationFrame(() => {
+      dragRafId = null;
+      if (dragging) api.dragTo();
+    });
   }
 });
+document.addEventListener('mouseup', endDrag);
+// 窗口失焦（如 Alt+Tab 切走）时强制结束拖动，避免状态残留
+window.addEventListener('blur', endDrag);
+
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  if (dragRafId) { cancelAnimationFrame(dragRafId); dragRafId = null; } // 丢弃未发送的最后一帧
+  api.dragEnd();
+}
 
 // ---------- 左键单击/双击判定（300ms 判定窗口） ----------
 let clickTimer = null;
@@ -142,6 +146,7 @@ function toggleBubble() {
   }
 }
 function closeBubble() {
+  if (chatStreaming) api.chatAbort(); // v2.3：面板关闭时中止未完成的流式请求
   $('#bubble').classList.add('hidden');
 }
 
@@ -153,16 +158,90 @@ function addChatMessage(text, who) {
   const log = $('#chat-log');
   log.appendChild(row);
   log.scrollTop = log.scrollHeight;
+  return row;
 }
 
-// 发送消息：大模型 agent 尚未接入，暂以占位回复代替（接入后替换此处的回复来源即可）
+// ---------- 大模型流式对话（v2.3：主进程 chat.js 后端，逐字渲染 + 思考区） ----------
+let chatStreaming = false;
+let chatBuf = { text: '', thinking: '' }; // chunk 缓冲（按帧批量落 DOM，避免逐字重排卡顿）
+let chatRafId = null;
+let chatBotRow = null;   // 当前流式输出的 bot 行
+let chatThinkEl = null;  // 思考区（deepseek-reasoner 的 reasoning）
+let chatTextEl = null;   // 正文区（追加流式文本）
+let chatCursorEl = null; // 流式光标
+
+function openBotStreamRow() {
+  chatBotRow = el('div', 'chat-msg bot');
+  chatBotRow.appendChild(el('span', 'chat-avatar', '🐱'));
+  const body = el('div', 'chat-bubble');
+  chatThinkEl = el('div', 'chat-thinking hidden');
+  chatTextEl = el('div', 'chat-text');
+  chatCursorEl = el('span', 'chat-cursor', '▍');
+  chatTextEl.appendChild(chatCursorEl);
+  body.append(chatThinkEl, chatTextEl);
+  chatBotRow.appendChild(body);
+  const log = $('#chat-log');
+  log.appendChild(chatBotRow);
+  log.scrollTop = log.scrollHeight;
+}
+
+function flushChatBuf() {
+  chatRafId = null;
+  if (chatBuf.thinking && chatThinkEl) {
+    chatThinkEl.textContent += chatBuf.thinking;
+    chatThinkEl.classList.remove('hidden');
+  }
+  if (chatBuf.text && chatTextEl && chatCursorEl) {
+    chatTextEl.insertBefore(document.createTextNode(chatBuf.text), chatCursorEl);
+  }
+  chatBuf = { text: '', thinking: '' };
+  const log = $('#chat-log');
+  log.scrollTop = log.scrollHeight;
+}
+
+function finishChatStream(err) {
+  if (chatCursorEl) { chatCursorEl.remove(); chatCursorEl = null; }
+  if (err && err.code === 'ABORTED') {
+    // 用户主动关闭面板：无内容则整行撤掉，有内容则保留已流出的部分
+    const empty = (!chatTextEl || !chatTextEl.textContent.trim()) && (!chatThinkEl || !chatThinkEl.textContent.trim());
+    if (empty && chatBotRow) chatBotRow.remove();
+  } else if (err) {
+    const fallback = err.code === 'NO_API_KEY'
+      ? '（还没配置 API Key：在项目 .env 中填写 DEEPSEEK_API_KEY，或到配置中心「大模型」页签保存后即可开始聊天）'
+      : `（连接大模型失败：${err.message}）`;
+    const empty = (!chatTextEl || !chatTextEl.textContent.trim()) && (!chatThinkEl || !chatThinkEl.textContent.trim());
+    if (empty && chatTextEl) {
+      chatTextEl.textContent = fallback;
+    } else if (chatTextEl) {
+      chatTextEl.append(' ', el('span', 'chat-err', fallback));
+    }
+  }
+  chatStreaming = false;
+  $('#chat-send').disabled = false;
+  chatBotRow = null; chatThinkEl = null; chatTextEl = null;
+  $('#chat-input').focus();
+}
+
+api.onChatChunk(({ delta, kind }) => {
+  if (kind === 'thinking') chatBuf.thinking += delta;
+  else chatBuf.text += delta;
+  if (!chatRafId) chatRafId = requestAnimationFrame(flushChatBuf);
+});
+api.onChatDone(() => { flushChatBuf(); finishChatStream(null); });
+api.onChatError((err) => { flushChatBuf(); finishChatStream(err); });
+
+// 发送消息：交给主进程 chat.js 引擎（流式回复经 onChatChunk 逐字渲染）
 function sendChat() {
+  if (chatStreaming) return; // 流式输出中禁止再次发送，防止串话
   const input = $('#chat-input');
   const text = input.value.trim();
   if (!text) return;
   addChatMessage(text, 'user');
   input.value = '';
-  addChatMessage('（大模型 agent 接入中…）我先记住你的话啦，等接入后就能真正陪你聊天了！', 'bot');
+  chatStreaming = true;
+  $('#chat-send').disabled = true;
+  openBotStreamRow();
+  api.chatSend(text);
 }
 $('#chat-send').addEventListener('click', sendChat);
 $('#chat-input').addEventListener('keydown', (e) => {
@@ -174,6 +253,11 @@ $('#bubble-close').addEventListener('click', closeBubble);
 $('#panel-close').addEventListener('click', () => api.setConfigOpen(false));
 // 退出宠物（v2.0 移至配置中心底部）
 $('#app-quit').addEventListener('click', () => api.quit());
+// 始终置顶开关（v2.4）：默认开；关闭时主进程降级为普通窗口并停止保活
+const topToggle = $('#always-on-top');
+if (topToggle) {
+  topToggle.addEventListener('change', () => api.setAlwaysOnTop(topToggle.checked));
+}
 
 // 点击舞台空白处关闭气泡（穿透区域内的点击无法捕获，此为窗口内兜底）
 document.addEventListener('mousedown', (e) => {
@@ -197,7 +281,7 @@ function wireTabs(tabsEl, paneMap) {
   });
 }
 // 配置中心 Tab 切换（宠物窗口无 Tab，此组仅在配置窗口生效）
-wireTabs($('.panel-header .tabs'), { commands: '#ptab-commands', reminders: '#ptab-reminders' });
+wireTabs($('.panel-header .tabs'), { commands: '#ptab-commands', reminders: '#ptab-reminders', chat: '#ptab-chat' });
 
 // ---------- 常用命令组件（仅配置中心：管理全部命令） ----------
 // v2.0：原右键“复制看板”已下线，quick 字段改为置顶（pinned）——勾选的条目排在列表最前，无数量上限
@@ -472,6 +556,69 @@ function refreshAll() {
   refreshReminders();
 }
 
+// ---------- 大模型配置组件（v2.3，仅配置中心「大模型」页签） ----------
+function createChatConfigWidget(container) {
+  container.innerHTML = '';
+
+  container.appendChild(el('div', 'chat-hint',
+    '未在下方填写时，自动读取项目 .env 中的 DEEPSEEK_API_KEY / DEEPSEEK_BASE_URL / DEEPSEEK_MODEL（修改 .env 需重启应用）。本页保存的值优先级更高，即存即用。'));
+
+  const form = el('div', 'form');
+  form.appendChild(el('div', 'field-label', 'API Key'));
+  const keyInput = el('input', 'input mono');
+  keyInput.type = 'password';
+  keyInput.placeholder = 'sk-...（留空读 .env）';
+  form.appendChild(keyInput);
+
+  form.appendChild(el('div', 'field-label', 'API 地址（Base URL）'));
+  const urlInput = el('input', 'input mono');
+  urlInput.placeholder = '留空默认 https://api.deepseek.com';
+  form.appendChild(urlInput);
+
+  form.appendChild(el('div', 'field-label', '模型'));
+  const modelSel = el('select', 'input');
+  modelSel.append(new Option('留空默认 deepseek-chat', ''));
+  modelSel.append(new Option('deepseek-chat（通用对话）', 'deepseek-chat'));
+  modelSel.append(new Option('deepseek-reasoner（深度思考）', 'deepseek-reasoner'));
+  form.appendChild(modelSel);
+
+  form.appendChild(el('div', 'field-label', '人设（系统提示词）'));
+  const promptArea = el('textarea', 'input');
+  promptArea.rows = 5;
+  promptArea.placeholder = '留空使用默认猫娘人设（时间感知 + 记忆陪伴 + 命令推荐）';
+  form.appendChild(promptArea);
+
+  const actions = el('div', 'form-actions');
+  const saveBtn = el('button', 'btn primary small', '保存');
+  const clearBtn = el('button', 'btn small', '清空对话历史');
+  actions.append(saveBtn, clearBtn);
+  form.appendChild(actions);
+  container.appendChild(form);
+
+  function fill() {
+    const c = (state.settings && state.settings.chat) || {};
+    keyInput.value = c.apiKey || '';
+    urlInput.value = c.baseUrl || '';
+    modelSel.value = c.model || '';
+    promptArea.value = c.systemPrompt || '';
+  }
+  fill();
+
+  saveBtn.addEventListener('click', async () => {
+    await api.chatSetConfig({
+      apiKey: keyInput.value.trim(),
+      baseUrl: urlInput.value.trim(),
+      model: modelSel.value,
+      systemPrompt: promptArea.value.trim()
+    });
+    toast('已保存，下一条消息生效');
+  });
+  clearBtn.addEventListener('click', async () => {
+    await api.chatClearHistory();
+    toast('对话历史已清空');
+  });
+}
+
 // ---------- 提醒触发表现：动画 + 提示音 + 气泡 三合一 ----------
 let notifyTimer = null;
 
@@ -564,6 +711,8 @@ async function loadData() {
     const data = await api.getAll();
     state.reminders = data.reminders || [];
     state.commands = data.commands || [];
+    state.settings = data.settings || {};
+    if (topToggle) topToggle.checked = state.settings.alwaysOnTop !== false; // v2.4：置顶开关回显
   } catch (e) {
     state = { reminders: [], commands: [] };
   }
@@ -578,6 +727,7 @@ async function init() {
     $('#panel').classList.remove('hidden');
     createCommandWidget($('#cmd-widget-panel'));
     createReminderWidget($('#rem-widget-panel'));
+    createChatConfigWidget($('#chat-widget-panel')); // v2.3：大模型页签配置
     wireConfigDrag(); // 面板头部可拖动窗口
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') api.setConfigOpen(false);
