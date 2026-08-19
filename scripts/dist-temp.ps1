@@ -42,4 +42,27 @@ $setup = Get-ChildItem $outDir -Filter '*Setup*.exe' | Sort-Object LastWriteTime
 Get-ChildItem (Join-Path $root 'dist') -Filter '*Setup*.exe' -ErrorAction SilentlyContinue | Remove-Item -Force
 Copy-Item $setup.FullName (Join-Path $root "dist\$($setup.Name)") -Force
 Write-Host "[4/4] 完成：dist\$($setup.Name)（$([math]::Round($setup.Length / 1MB, 1)) MB）"
+
+# v2.5：安装包旁附 .env.example 说明模板（供分发参考；实际配置文件由应用首次启动时在安装目录自动生成）
+$envExample = @'
+# ============================================================
+#  AI 桌宠 · 大模型配置文件（编辑后重启应用生效）
+#  配置中心「大模型」页签保存的值优先级高于本文件；
+#  如需让本文件生效，请清空配置中心页签中对应的保存值。
+# ============================================================
+
+# API Key（必填，platform.deepseek.com 获取，形如 sk-xxx）
+DEEPSEEK_API_KEY=
+
+# API 地址（留空默认 https://api.deepseek.com，可改中转地址）
+DEEPSEEK_BASE_URL=
+
+# 模型（deepseek-chat 通用对话 / deepseek-reasoner 深度思考）
+DEEPSEEK_MODEL=deepseek-chat
+
+# 角色人设（系统提示词，留空使用内置猫娘人设「咪咪」，支持中文长文本）
+DEEPSEEK_SYSTEM_PROMPT=
+'@
+[System.IO.File]::WriteAllText((Join-Path $root 'dist\.env.example'), $envExample, [System.Text.UTF8Encoding]::new($false))
+Write-Host "      附带说明：dist\.env.example（安装后首次启动将在安装目录自动生成 .env 配置模板）"
 Write-Host "========================================"

@@ -8,7 +8,7 @@ const api = window.petAPI;
 const isConfigWindow = new URLSearchParams(location.search).get('mode') === 'config';
 if (isConfigWindow) document.body.classList.add('config-mode');
 
-let state = { reminders: [], commands: [], settings: {} };
+let state = { reminders: [], commands: [], settings: {}, envFile: '' };
 
 // ---------- 工具 ----------
 function el(tag, cls, text) {
@@ -560,8 +560,11 @@ function refreshAll() {
 function createChatConfigWidget(container) {
   container.innerHTML = '';
 
+  const envFile = state.envFile || '';
   container.appendChild(el('div', 'chat-hint',
-    '未在下方填写时，自动读取项目 .env 中的 DEEPSEEK_API_KEY / DEEPSEEK_BASE_URL / DEEPSEEK_MODEL（修改 .env 需重启应用）。本页保存的值优先级更高，即存即用。'));
+    envFile
+      ? `未在下方填写时，自动读取 .env 配置文件（位置：${envFile}，编辑后重启应用生效）。本页保存的值优先级更高，即存即用。`
+      : '未在下方填写时，自动读取 .env 配置文件（安装目录或 %APPDATA% 下，编辑后重启应用生效）。本页保存的值优先级更高，即存即用。'));
 
   const form = el('div', 'form');
   form.appendChild(el('div', 'field-label', 'API Key'));
@@ -712,6 +715,7 @@ async function loadData() {
     state.reminders = data.reminders || [];
     state.commands = data.commands || [];
     state.settings = data.settings || {};
+    state.envFile = data.envFile || ''; // v2.5：.env 配置文件路径（配置中心提示用）
     if (topToggle) topToggle.checked = state.settings.alwaysOnTop !== false; // v2.4：置顶开关回显
   } catch (e) {
     state = { reminders: [], commands: [] };
@@ -719,6 +723,8 @@ async function loadData() {
 }
 
 async function init() {
+  await loadData(); // v2.5 修复：先拉数据再建组件——此前大模型配置表单在数据加载前创建，
+  // fill() 读到空 state，导致已保存的 Key/人设永远不回显（表现似“配置无法长期存储”）
   if (isConfigWindow) {
     // 配置中心独立窗口：只显示配置面板（无宠物/气泡/通知），Esc 或 ✕ 关窗
     $('#pet').classList.add('hidden');
@@ -739,7 +745,6 @@ async function init() {
       refreshAll();
     });
   }
-  await loadData();
   refreshAll();
 }
 init();

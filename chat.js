@@ -232,7 +232,7 @@ class ChatEngine {
       apiKey: pick(settings.apiKey) || pick(env.DEEPSEEK_API_KEY),
       baseUrl: pick(settings.baseUrl) || pick(env.DEEPSEEK_BASE_URL) || 'https://api.deepseek.com',
       model: pick(settings.model) || pick(env.DEEPSEEK_MODEL) || 'deepseek-chat',
-      systemPrompt: pick(settings.systemPrompt),
+      systemPrompt: pick(settings.systemPrompt) || pick(env.DEEPSEEK_SYSTEM_PROMPT), // v2.5：人设支持 .env 配置
       maxTurns: Number(settings.maxTurns) || Number(env.CHAT_MAX_TURNS) || 12,
     };
   }

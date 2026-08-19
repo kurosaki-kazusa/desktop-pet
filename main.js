@@ -1,6 +1,7 @@
 // main.js · Electron 主进程：窗口 / IPC / 数据 / 提醒调度器
 const { app, BrowserWindow, ipcMain, clipboard, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Store = require('electron-store');
 const { ChatEngine, loadEnvFrom } = require('./chat'); // v2.3 大模型会话后端（复刻 deepseek-harness 会话设计）
 
@@ -46,6 +47,55 @@ function loadChatEnv() {
   return env;
 }
 const chatEnv = loadChatEnv();
+
+// ---------- v2.5：打包版 .env 配置文件模板 ----------
+// 打包版不含 .env（files 白名单排除），首次启动在安装目录（exe 旁）生成带注释的
+// .env 模板供用户直接编辑（Key/地址/模型/人设），loadChatEnv 已把 exe 旁目录纳入读取范围。
+// 安装目录不可写（如默认 Program Files）时回落到 userData（同样会被 loadChatEnv 读到）。
+// 开发模式（npm start）不生成：项目根已有 .env，避免污染 node_modules\electron 目录。
+const ENV_TEMPLATE = [
+  '# ============================================================',
+  '#  AI 桌宠 · 大模型配置文件（编辑后重启应用生效）',
+  '#  配置中心「大模型」页签保存的值优先级高于本文件；',
+  '#  如需让本文件生效，请清空配置中心页签中对应的保存值。',
+  '# ============================================================',
+  '',
+  '# API Key（必填，platform.deepseek.com 获取，形如 sk-xxx）',
+  'DEEPSEEK_API_KEY=',
+  '',
+  '# API 地址（留空默认 https://api.deepseek.com，可改中转地址）',
+  'DEEPSEEK_BASE_URL=',
+  '',
+  '# 模型（deepseek-chat 通用对话 / deepseek-reasoner 深度思考）',
+  'DEEPSEEK_MODEL=deepseek-chat',
+  '',
+  '# 角色人设（系统提示词，留空使用内置猫娘人设「咪咪」，支持中文长文本）',
+  'DEEPSEEK_SYSTEM_PROMPT=',
+  ''
+].join('\r\n');
+
+function seedEnvTemplate() {
+  if (!app.isPackaged) return; // 开发模式：项目根 .env 已存在，不生成
+  for (const dir of [path.dirname(process.execPath), app.getPath('userData')]) {
+    const p = path.join(dir, '.env');
+    if (fs.existsSync(p)) return;
+    try {
+      fs.writeFileSync(p, ENV_TEMPLATE, 'utf8');
+      return;
+    } catch (e) {
+      // 目录不可写（如 Program Files）→ 尝试下一处
+    }
+  }
+}
+
+// 找到当前生效的 .env 文件路径（配置中心 UI 展示用，不存在返回空串）
+function findEnvFile() {
+  for (const dir of [path.dirname(process.execPath), app.getPath('userData'), app.getAppPath()]) {
+    const p = path.join(dir, '.env');
+    if (fs.existsSync(p)) return p;
+  }
+  return '';
+}
 
 const chatEngine = new ChatEngine({
   getConfig: () => ({ settings: getChatSettings(), env: chatEnv }),
@@ -219,7 +269,8 @@ function registerIpc() {
     return {
       reminders: store.get('reminders'),
       commands,
-      settings: { ...store.get('settings'), chat: getChatSettings() } // v2.3：chat 配置归一化后返回
+      settings: { ...store.get('settings'), chat: getChatSettings() }, // v2.3：chat 配置归一化后返回
+      envFile: findEnvFile() // v2.5：当前 .env 配置文件路径（配置中心展示，找不到为空串）
     };
   });
 
@@ -445,6 +496,7 @@ function registerIpc() {
 
 // ---------- 应用生命周期 ----------
 app.whenReady().then(() => {
+  seedEnvTemplate(); // v2.5：打包版首次启动在安装目录生成 .env 配置模板
   seedPresets();
   registerIpc();
   createWindow();

@@ -1,6 +1,6 @@
 {
   "name": "ai-desktop-pet",
-  "version": "1.1.0",
+  "version": "2.2.0",
   "description": "AI 悬浮桌面宠物：提醒功能 + 常用命令记录器 + 大模型流式对话",
   "author": "vibe-coding",
   "main": "main.js",
@@ -17,7 +17,7 @@
     "directories": { "output": "dist" },
     "files": ["main.js", "preload.js", "renderer.js", "index.html", "styles.css", "chat.js"],
     "electronDownload": {
-      "mirror": "https://npmmirror.com/mirrors/electron/"
+      "mirror": "https://registry.npmmirror.com/-/binary/electron/"
     },
     "win": {
       "target": ["nsis"],
