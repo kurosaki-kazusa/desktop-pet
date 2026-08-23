@@ -217,7 +217,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 
 function triggerReminder(r) {
   if (win && !win.isDestroyed()) {
-    win.webContents.send('reminder:trigger', { text: r.text });
+    win.webContents.send('reminder:trigger', { text: r.text, preset: r.preset || '', type: r.type || '' });
   }
 }
 

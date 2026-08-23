@@ -30,22 +30,115 @@ function toast(msg) {
 }
 
 // ---------- 宠物状态机（idle / action / remind） ----------
-const ACTIONS = ['anim-jump', 'anim-spin', 'anim-wiggle'];
+const PET_FRAME_BASE = 'assets/pet-actions';
+const PET_IDLE = { id: 'action-07', frames: 6, frameMs: 280 };
+const PET_IDLE_INTERVAL_MS = 20000;
+const PET_REMIND = { id: 'action-06', frames: 8, frameMs: 220 };
+const PET_ACTIONS = [
+  { id: 'action-01', frames: 6, frameMs: 260 },
+  { id: 'action-02', frames: 8, frameMs: 240 },
+  { id: 'action-03', frames: 8, frameMs: 240 },
+  { id: 'action-04', frames: 4, frameMs: 260 },
+  { id: 'action-05', frames: 5, frameMs: 250 },
+  { id: 'action-08', frames: 6, frameMs: 240 },
+  { id: 'action-09', frames: 6, frameMs: 260 },
+];
 let actionTimer = null;
+let frameTimer = null;
+let idleTimer = null;
+let frameIndex = 0;
+let currentPetState = 'idle';
+const preloadedPetImages = [];
+
+function petFrameSrc(actionId, index) {
+  return `${PET_FRAME_BASE}/${actionId}/frame-${String(index).padStart(2, '0')}.png`;
+}
+
+function preloadPetFrames() {
+  [PET_IDLE, PET_REMIND, ...PET_ACTIONS].forEach((action) => {
+    for (let i = 1; i <= action.frames; i += 1) {
+      const img = new Image();
+      img.src = petFrameSrc(action.id, i);
+      preloadedPetImages.push(img);
+    }
+  });
+}
+
+function stopPetFrameTimers() {
+  clearInterval(frameTimer);
+  clearTimeout(idleTimer);
+  frameTimer = null;
+  idleTimer = null;
+}
+
+function setPetStill(action, index = 1) {
+  const frame = $('#pet-frame');
+  clearInterval(frameTimer);
+  frameTimer = null;
+  frameIndex = index;
+  frame.src = petFrameSrc(action.id, frameIndex);
+}
+
+function playPetFrames(action, { loop = true, onDone = null } = {}) {
+  const frame = $('#pet-frame');
+  clearInterval(frameTimer);
+  frameTimer = null;
+  frameIndex = 1;
+  frame.src = petFrameSrc(action.id, frameIndex);
+
+  frameTimer = setInterval(() => {
+    frameIndex += 1;
+    if (frameIndex > action.frames) {
+      if (!loop) {
+        clearInterval(frameTimer);
+        frameTimer = null;
+        if (onDone) onDone();
+        return;
+      }
+      frameIndex = 1;
+    }
+    frame.src = petFrameSrc(action.id, frameIndex);
+  }, action.frameMs);
+}
+
+function scheduleIdlePlayback() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (currentPetState !== 'idle') return;
+    playPetFrames(PET_IDLE, {
+      loop: false,
+      onDone: () => {
+        if (currentPetState !== 'idle') return;
+        setPetStill(PET_IDLE, 1);
+        scheduleIdlePlayback();
+      }
+    });
+  }, PET_IDLE_INTERVAL_MS);
+}
 
 function setPetState(s) {
   const pet = $('#pet');
-  pet.classList.remove('anim-idle', 'anim-remind', ...ACTIONS);
+  pet.classList.remove('anim-idle', 'anim-action', 'anim-remind');
   clearTimeout(actionTimer);
+  clearTimeout(idleTimer);
+  currentPetState = s;
   if (s === 'remind') {
     pet.classList.add('anim-remind');
+    playPetFrames(PET_REMIND, { loop: true });
   } else if (s === 'action') {
-    pet.classList.add(ACTIONS[Math.floor(Math.random() * ACTIONS.length)]);
-    actionTimer = setTimeout(() => setPetState('idle'), 1200); // 兜底回 idle
+    const action = PET_ACTIONS[Math.floor(Math.random() * PET_ACTIONS.length)];
+    pet.classList.add('anim-action');
+    playPetFrames(action, { loop: false, onDone: () => setPetState('idle') });
+    actionTimer = setTimeout(() => setPetState('idle'), action.frames * action.frameMs + 250); // 兜底回 idle
   } else {
     pet.classList.add('anim-idle');
+    stopPetFrameTimers();
+    setPetStill(PET_IDLE, 1);
+    scheduleIdlePlayback();
   }
 }
+preloadPetFrames();
+setPetState('idle');
 
 // ---------- 点击穿透动态切换（仅宠物窗口） ----------
 // 拖动中禁止切回穿透：否则 mouseup 会丢失，dragging 状态卡死导致后续定位错乱
@@ -624,9 +717,12 @@ function createChatConfigWidget(container) {
 
 // ---------- 提醒触发表现：动画 + 提示音 + 气泡 三合一 ----------
 let notifyTimer = null;
+const usageReminderAudio = new Audio('assets/audio.wav');
+usageReminderAudio.preload = 'auto';
 
-api.onReminder(({ text }) => {
-  playNotifySound();
+api.onReminder((reminder) => {
+  const { text } = reminder;
+  playNotifySound(reminder);
   setPetState('remind');
   $('#notify-text').textContent = text;
   $('#notify-bubble').classList.remove('hidden');
@@ -641,8 +737,36 @@ function hideNotifyBubble() {
 }
 $('#notify-ok').addEventListener('click', hideNotifyBubble);
 
+function isUsageReminder(reminder) {
+  return reminder && (
+    reminder.preset === 'usage' ||
+    /使用电脑\s*1\s*小时|看电脑\s*一小时/.test(reminder.text || '')
+  );
+}
+
+function playUsageReminderVoice() {
+  try {
+    usageReminderAudio.pause();
+    usageReminderAudio.currentTime = 0;
+    const result = usageReminderAudio.play();
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => playSyntheticNotifySound());
+    }
+  } catch (e) {
+    playSyntheticNotifySound();
+  }
+}
+
 // WebAudio 合成双音提示音（A5 → D6，正弦波，无需素材文件）
-function playNotifySound() {
+function playNotifySound(reminder) {
+  if (isUsageReminder(reminder)) {
+    playUsageReminderVoice();
+    return;
+  }
+  playSyntheticNotifySound();
+}
+
+function playSyntheticNotifySound() {
   try {
     const ctx = new AudioContext();
     const volume = 0.8;

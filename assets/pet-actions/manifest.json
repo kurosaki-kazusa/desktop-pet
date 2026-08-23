@@ -1,0 +1,567 @@
+{
+  "source": "docs/spritesheet.webp",
+  "generatedAt": "2026-08-23T15:29:17.525Z",
+  "layout": {
+    "rows": 9,
+    "width": 1536,
+    "height": 1872,
+    "rowHeight": 208
+  },
+  "actions": [
+    {
+      "id": "action-01",
+      "row": 1,
+      "x": 0,
+      "y": 0,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-01/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 16,
+          "y": 6,
+          "width": 161,
+          "height": 196,
+          "file": "action-01/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 203,
+          "y": 6,
+          "width": 170,
+          "height": 196,
+          "file": "action-01/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 402,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-01/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 594,
+          "y": 6,
+          "width": 159,
+          "height": 196,
+          "file": "action-01/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 788,
+          "y": 6,
+          "width": 156,
+          "height": 196,
+          "file": "action-01/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 977,
+          "y": 6,
+          "width": 159,
+          "height": 196,
+          "file": "action-01/frame-06.png"
+        }
+      ]
+    },
+    {
+      "id": "action-02",
+      "row": 2,
+      "x": 0,
+      "y": 208,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-02/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 19,
+          "y": 6,
+          "width": 155,
+          "height": 196,
+          "file": "action-02/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 206,
+          "y": 6,
+          "width": 164,
+          "height": 196,
+          "file": "action-02/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 398,
+          "y": 6,
+          "width": 165,
+          "height": 196,
+          "file": "action-02/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 589,
+          "y": 6,
+          "width": 166,
+          "height": 196,
+          "file": "action-02/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 782,
+          "y": 6,
+          "width": 164,
+          "height": 196,
+          "file": "action-02/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 972,
+          "y": 6,
+          "width": 169,
+          "height": 196,
+          "file": "action-02/frame-06.png"
+        },
+        {
+          "index": 7,
+          "x": 1169,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-02/frame-07.png"
+        },
+        {
+          "index": 8,
+          "x": 1361,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-02/frame-08.png"
+        }
+      ]
+    },
+    {
+      "id": "action-03",
+      "row": 3,
+      "x": 0,
+      "y": 416,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-03/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 18,
+          "y": 6,
+          "width": 155,
+          "height": 196,
+          "file": "action-03/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 206,
+          "y": 6,
+          "width": 164,
+          "height": 196,
+          "file": "action-03/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 397,
+          "y": 6,
+          "width": 165,
+          "height": 196,
+          "file": "action-03/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 589,
+          "y": 6,
+          "width": 166,
+          "height": 196,
+          "file": "action-03/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 782,
+          "y": 6,
+          "width": 164,
+          "height": 196,
+          "file": "action-03/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 971,
+          "y": 6,
+          "width": 169,
+          "height": 196,
+          "file": "action-03/frame-06.png"
+        },
+        {
+          "index": 7,
+          "x": 1169,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-03/frame-07.png"
+        },
+        {
+          "index": 8,
+          "x": 1361,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-03/frame-08.png"
+        }
+      ]
+    },
+    {
+      "id": "action-04",
+      "row": 4,
+      "x": 0,
+      "y": 624,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-04/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 20,
+          "y": 6,
+          "width": 153,
+          "height": 196,
+          "file": "action-04/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 209,
+          "y": 6,
+          "width": 159,
+          "height": 196,
+          "file": "action-04/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 398,
+          "y": 6,
+          "width": 164,
+          "height": 196,
+          "file": "action-04/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 596,
+          "y": 6,
+          "width": 152,
+          "height": 196,
+          "file": "action-04/frame-04.png"
+        }
+      ]
+    },
+    {
+      "id": "action-05",
+      "row": 5,
+      "x": 0,
+      "y": 832,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-05/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 10,
+          "y": 6,
+          "width": 172,
+          "height": 196,
+          "file": "action-05/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 206,
+          "y": 6,
+          "width": 165,
+          "height": 196,
+          "file": "action-05/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 393,
+          "y": 21,
+          "width": 174,
+          "height": 167,
+          "file": "action-05/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 585,
+          "y": 7,
+          "width": 174,
+          "height": 194,
+          "file": "action-05/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 783,
+          "y": 6,
+          "width": 162,
+          "height": 196,
+          "file": "action-05/frame-05.png"
+        }
+      ]
+    },
+    {
+      "id": "action-06",
+      "row": 6,
+      "x": 0,
+      "y": 1040,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-06/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 16,
+          "y": 6,
+          "width": 161,
+          "height": 196,
+          "file": "action-06/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 210,
+          "y": 6,
+          "width": 157,
+          "height": 196,
+          "file": "action-06/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 401,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-06/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 592,
+          "y": 6,
+          "width": 160,
+          "height": 196,
+          "file": "action-06/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 780,
+          "y": 6,
+          "width": 168,
+          "height": 196,
+          "file": "action-06/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 969,
+          "y": 7,
+          "width": 174,
+          "height": 194,
+          "file": "action-06/frame-06.png"
+        },
+        {
+          "index": 7,
+          "x": 1166,
+          "y": 6,
+          "width": 165,
+          "height": 196,
+          "file": "action-06/frame-07.png"
+        },
+        {
+          "index": 8,
+          "x": 1361,
+          "y": 6,
+          "width": 159,
+          "height": 196,
+          "file": "action-06/frame-08.png"
+        }
+      ]
+    },
+    {
+      "id": "action-07",
+      "row": 7,
+      "x": 0,
+      "y": 1248,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-07/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 19,
+          "y": 6,
+          "width": 154,
+          "height": 196,
+          "file": "action-07/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 207,
+          "y": 6,
+          "width": 163,
+          "height": 196,
+          "file": "action-07/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 402,
+          "y": 6,
+          "width": 156,
+          "height": 196,
+          "file": "action-07/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 595,
+          "y": 6,
+          "width": 155,
+          "height": 196,
+          "file": "action-07/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 789,
+          "y": 6,
+          "width": 153,
+          "height": 196,
+          "file": "action-07/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 979,
+          "y": 6,
+          "width": 154,
+          "height": 196,
+          "file": "action-07/frame-06.png"
+        }
+      ]
+    },
+    {
+      "id": "action-08",
+      "row": 8,
+      "x": 0,
+      "y": 1456,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-08/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 10,
+          "y": 6,
+          "width": 172,
+          "height": 196,
+          "file": "action-08/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 201,
+          "y": 7,
+          "width": 174,
+          "height": 195,
+          "file": "action-08/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 401,
+          "y": 6,
+          "width": 158,
+          "height": 196,
+          "file": "action-08/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 590,
+          "y": 6,
+          "width": 165,
+          "height": 196,
+          "file": "action-08/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 777,
+          "y": 10,
+          "width": 174,
+          "height": 189,
+          "file": "action-08/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 977,
+          "y": 6,
+          "width": 159,
+          "height": 196,
+          "file": "action-08/frame-06.png"
+        }
+      ]
+    },
+    {
+      "id": "action-09",
+      "row": 9,
+      "x": 0,
+      "y": 1664,
+      "width": 1536,
+      "height": 208,
+      "strip": "action-09/strip.png",
+      "frames": [
+        {
+          "index": 1,
+          "x": 23,
+          "y": 6,
+          "width": 146,
+          "height": 196,
+          "file": "action-09/frame-01.png"
+        },
+        {
+          "index": 2,
+          "x": 211,
+          "y": 6,
+          "width": 155,
+          "height": 196,
+          "file": "action-09/frame-02.png"
+        },
+        {
+          "index": 3,
+          "x": 396,
+          "y": 6,
+          "width": 168,
+          "height": 196,
+          "file": "action-09/frame-03.png"
+        },
+        {
+          "index": 4,
+          "x": 597,
+          "y": 6,
+          "width": 150,
+          "height": 196,
+          "file": "action-09/frame-04.png"
+        },
+        {
+          "index": 5,
+          "x": 792,
+          "y": 6,
+          "width": 145,
+          "height": 196,
+          "file": "action-09/frame-05.png"
+        },
+        {
+          "index": 6,
+          "x": 983,
+          "y": 6,
+          "width": 147,
+          "height": 196,
+          "file": "action-09/frame-06.png"
+        }
+      ]
+    }
+  ]
+}

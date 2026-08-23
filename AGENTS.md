@@ -62,8 +62,8 @@ projects/
 
 > 详细状态以 `开发日志/开发日志.md` 为准，本节仅做快照。
 
-- ✅ 一期开发完成：M0-M6 全部里程碑通过验收（2026-08-17）；v1.2 配置中心 + v1.3 居中放大/标题搜索/右键复制看板 + v1.4 配置中心独立窗口（双击只弹设置窗口，宠物不动）+ v1.5 应用打包（NSIS 安装包 + 猫猫头图标）+ v1.6 性能优化（配置中心头部可拖动、复制看板命令只显示第一行）+ v1.0.1 纯净版安装包（不含用户数据）+ v2.0 交互面板改造（右键改对话面板，quick→pinned 置顶，退出按钮移入配置中心）+ v2.1 交互入口对调（双击=对话、右键=配置）+ v2.2 一键打包脚本（TEMP 打包 + asar 纯净校验）+ v2.3 大模型会话接入（chat.js 流式后端，.env 填 Key 即用）+ v2.4 性能与置顶优化（置顶 screen-saver 级 + 5 秒保活 + 「始终置顶」开关；拖动 rAF 节流 + 动画减负）+ v2.5 配置文件机制（安装目录自动生成 .env 模板 + 配置回显 bug 修复 + 镜像源切 registry.npmmirror.com）均已完成
+- ✅ 一期开发完成：M0-M6 全部里程碑通过验收（2026-08-17）；v1.2 配置中心 + v1.3 居中放大/标题搜索/右键复制看板 + v1.4 配置中心独立窗口（双击只弹设置窗口，宠物不动）+ v1.5 应用打包（NSIS 安装包 + 猫猫头图标）+ v1.6 性能优化（配置中心头部可拖动、复制看板命令只显示第一行）+ v1.0.1 纯净版安装包（不含用户数据）+ v2.0 交互面板改造（右键改对话面板，quick→pinned 置顶，退出按钮移入配置中心）+ v2.1 交互入口对调（双击=对话、右键=配置）+ v2.2 一键打包脚本（TEMP 打包 + asar 纯净校验）+ v2.3 大模型会话接入（chat.js 流式后端，.env 填 Key 即用）+ v2.4 性能与置顶优化（置顶 screen-saver 级 + 5 秒保活 + 「始终置顶」开关；拖动 rAF 节流 + 动画减负）+ v2.5 配置文件机制（安装目录自动生成 .env 模板 + 配置回显 bug 修复 + 镜像源切 registry.npmmirror.com）+ v2.6 九组动作素材替换（spritesheet.webp → assets/pet-actions 透明逐帧 PNG，运行时替换 emoji 宠物；idle=action-07，每 20 秒播放一次）均已完成
 - 打包注意：electron 镜像源为 registry.npmmirror.com/-/binary/electron/（npmmirror.com 大文件下载极慢致打包卡死）；打包版与开发版共用 userData（%APPDATA%\ai-desktop-pet，因 asar 内 package.json 无 productName）
-- 🚀 运行方式：`npm start`（开发调试，宠物悬浮于桌面，双击对话交互面板 / 右键打开居中配置中心窗口（头部可拖动）/ 左键互动）；**启用对话**：在 `.env` 填 `DEEPSEEK_API_KEY`（或在配置中心「大模型」页签填写）后重启；**单测**：`npm run test:chat`；**一键打包**：双击根目录 `一键打包.bat`（或 `npm run dist:clean`）——输出到 TEMP 绕过 D:\Documents 同步盘对 asar 的句柄锁、自动校验包内纯净（无个人配置/用户数据）、产物复制回 dist\；其他环境用 `npm run dist`
+- 🚀 运行方式：`npm start`（开发调试，宠物悬浮于桌面，双击对话交互面板 / 右键打开居中配置中心窗口（头部可拖动）/ 左键互动，宠物本体使用 `assets/pet-actions/` 透明 PNG 帧动画）；**启用对话**：在 `.env` 填 `DEEPSEEK_API_KEY`（或在配置中心「大模型」页签填写）后重启；**单测**：`npm run test:chat`；**一键打包**：双击根目录 `一键打包.bat`（或 `npm run dist:clean`）——输出到 TEMP 绕过 D:\Documents 同步盘对 asar 的句柄锁、自动校验包内纯净（无个人配置/用户数据）、产物复制回 dist\；其他环境用 `npm run dist`
 - ⏸️ 暂缓：安装包体积优化（electronLanguages 裁剪/NSIS 压缩，见 docs/性能与置顶优化方案.md §1）
 - ⏭️ 后续：扩展见《需求规范》§5 与开发日志

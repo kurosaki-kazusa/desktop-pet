@@ -19,43 +19,42 @@ html, body {
 #pet {
   position: absolute;
   left: 50%;
-  bottom: 16px;
+  bottom: 12px;
   transform: translateX(-50%);
-  font-size: 128px;
-  line-height: 1;
+  width: 176px;
+  height: 188px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   cursor: pointer;
   /* v2.4 性能优化：合成层预建（配合无限呼吸动画减少反复光栅化）+ 阴影减负（blur 6px→4px、透明度减淡，降低每帧滤镜重算成本） */
   will-change: transform;
   filter: drop-shadow(0 3px 4px rgba(0,0,0,.12));
 }
+#pet-frame {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
 
 /* 状态机动画（class 约定：anim-idle / anim-* / anim-remind） */
-.anim-idle   { animation: breathe 5s ease-in-out infinite; } /* v2.4：3s→5s 降低重绘频率，视觉更柔和 */
-.anim-jump   { animation: jump 0.6s ease 2; }
-.anim-spin   { animation: spin 1.1s ease; }
-.anim-wiggle { animation: wiggle 0.3s ease 4; }
-.anim-remind { animation: bounce 0.5s ease infinite alternate; }
+.anim-idle   { animation: none; } /* v2.6：待机以静止帧为主，关闭大小浮动 */
+.anim-action { animation: petAction 1.4s ease; }
+.anim-remind { animation: bounce 0.9s ease infinite alternate; }
 
 @keyframes breathe {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50%      { transform: translateX(-50%) scale(1.05) translateY(-3px); }
+  0%, 100% { transform: translateX(-50%); }
+  50%      { transform: translateX(-50%) translateY(-3px); }
 }
-@keyframes jump {
+@keyframes petAction {
   0%, 100% { transform: translateX(-50%) translateY(0); }
-  50%      { transform: translateX(-50%) translateY(-34px); }
-}
-@keyframes spin {
-  from { transform: translateX(-50%) rotate(0); }
-  to   { transform: translateX(-50%) rotate(360deg); }
-}
-@keyframes wiggle {
-  0%, 100% { transform: translateX(-50%) rotate(0); }
-  25%      { transform: translateX(-50%) rotate(-10deg); }
-  75%      { transform: translateX(-50%) rotate(10deg); }
+  50%      { transform: translateX(-50%) translateY(-8px); }
 }
 @keyframes bounce {
-  from { transform: translateX(-50%) translateY(0) scale(1.02); }
-  to   { transform: translateX(-50%) translateY(-12px) scale(1.06); }
+  from { transform: translateX(-50%) translateY(0); }
+  to   { transform: translateX(-50%) translateY(-12px); }
 }
 
 /* ---------- 通用卡片 ---------- */
@@ -69,7 +68,7 @@ html, body {
 #bubble {
   position: absolute;
   left: 50%;
-  bottom: 156px;
+  bottom: 200px;
   transform: translateX(-50%);
   width: 380px;
   max-height: 400px;
@@ -178,7 +177,7 @@ body.config-mode #panel {
 #notify-bubble {
   position: absolute;
   left: 50%;
-  bottom: 156px;
+  bottom: 200px;
   transform: translateX(-50%);
   max-width: 400px;
   padding: 10px 14px;

@@ -15,7 +15,7 @@
     "appId": "com.vibecoding.ai-desktop-pet",
     "productName": "AI桌宠",
     "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "renderer.js", "index.html", "styles.css", "chat.js"],
+    "files": ["main.js", "preload.js", "renderer.js", "index.html", "styles.css", "chat.js", "assets/**/*"],
     "electronDownload": {
       "mirror": "https://registry.npmmirror.com/-/binary/electron/"
     },
