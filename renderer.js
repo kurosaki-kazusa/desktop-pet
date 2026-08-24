@@ -46,7 +46,7 @@ const PET_ACTIONS = [
   { id: 'action-01', frames: 6, frameMs: 260 },
   { id: 'action-02', frames: 8, frameMs: 240 },
   { id: 'action-03', frames: 8, frameMs: 240 },
-  { id: 'action-04', frames: 4, frameMs: 260 },
+  { id: 'action-04-interpolated', frames: 8, frameMs: 130 }, // v2.10：action-04 2× 补帧测试，总时长保持 1040ms
   { id: 'action-05', frames: 5, frameMs: 250 },
   { id: 'action-08', frames: 6, frameMs: 240 },
   { id: 'action-09', frames: 6, frameMs: 260 },

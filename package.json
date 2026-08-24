@@ -1,6 +1,6 @@
 {
   "name": "ai-desktop-pet",
-  "version": "2.2.2",
+  "version": "2.2.4",
   "description": "AI 悬浮桌面宠物：提醒功能 + 常用命令记录器 + 大模型流式对话",
   "author": "vibe-coding",
   "main": "main.js",

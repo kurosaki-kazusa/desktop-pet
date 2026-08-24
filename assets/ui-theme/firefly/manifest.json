@@ -1,0 +1,120 @@
+{
+  "theme": "萤光织界 / Firefly UI Theme",
+  "status": "implemented in v2.9; diamond-mark excluded",
+  "source": "assets/pet-actions/action-07/frame-03.png",
+  "background_reference": "image generation using local character palette and motifs; no character included",
+  "assets": [
+    {
+      "path": "assets/ui-theme/firefly/backgrounds/chat-night.png",
+      "size": [
+        1600,
+        900
+      ],
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/ui-theme/firefly/backgrounds/config-steel.png",
+      "size": [
+        1600,
+        900
+      ],
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/ui-theme/firefly/ornaments/chest-crystal-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/ornaments/chest-crystal-master.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/ornaments/chest-crystal.png",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/ornaments/header-ornament.png",
+      "size": [
+        1024,
+        160
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/ornaments/wing-ribbon.png",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-cyan-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-cyan-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-gold-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-gold-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-pink-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/particles/firefly-pink-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/ui-theme/firefly/patterns/diamond-tile.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    }
+  ]
+}

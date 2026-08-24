@@ -1,4 +1,4 @@
-/* styles.css · AI 悬浮桌面宠物 —— 设计规范 v1.1 */
+/* styles.css · AI 悬浮桌面宠物 —— 设计规范 v2.9 */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -331,7 +331,6 @@ textarea.input {
   white-space: pre-wrap;
   word-break: break-word;
 }
-.chat-thinking::before { content: '💭 '; }
 .chat-text { white-space: pre-wrap; word-break: break-word; }
 .chat-cursor {
   color: #5B8DEF;
@@ -362,4 +361,386 @@ textarea.input {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-50%) translateY(4px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---------- 萤光织界主题（v2.9） ---------- */
+:root {
+  --firefly-night: #0B1630;
+  --firefly-steel: #1C3148;
+  --firefly-cyan: #54D7D7;
+  --firefly-mint: #7FCFCA;
+  --firefly-gold: #EEAF49;
+  --firefly-pink: #F093AA;
+  --firefly-coral: #DC7857;
+  --firefly-moon: #F5F2F0;
+  --firefly-ink: #162538;
+  --firefly-line: rgba(84, 215, 215, 0.42);
+}
+
+/* 两个 BrowserWindow 的卡片外部始终保持 alpha 透明。 */
+body.config-mode {
+  color: var(--firefly-ink);
+  background: transparent;
+}
+
+body.config-mode #stage::before {
+  content: none;
+}
+
+.theme-particle-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-particle {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  opacity: 0.58;
+  will-change: transform, opacity;
+  animation: fireflyDrift 10s ease-in-out infinite alternate;
+}
+
+.theme-particle.particle-cyan { left: -8px; top: 74px; }
+.theme-particle.particle-gold { right: 54px; top: 6px; width: 36px; height: 36px; animation-delay: -3.5s; }
+.theme-particle.particle-pink { right: -7px; bottom: 58px; width: 32px; height: 32px; animation-delay: -6s; }
+
+#bubble {
+  isolation: isolate;
+  color: var(--firefly-ink);
+  padding: 12px;
+  border: 1px solid rgba(84, 215, 215, 0.62);
+  border-radius: 20px;
+  background: rgba(245, 242, 240, 0.97);
+  box-shadow:
+    0 12px 30px rgba(11, 22, 48, 0.16),
+    0 0 20px rgba(84, 215, 215, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+#bubble::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: url("assets/ui-theme/firefly/patterns/diamond-tile.png") center / 330px 330px repeat;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#bubble > :not(.theme-particle-layer),
+#panel > :not(.theme-particle-layer) {
+  position: relative;
+  z-index: 2;
+}
+
+.bubble-header,
+.panel-header {
+  background-image: url("assets/ui-theme/firefly/ornaments/header-ornament.png");
+  background-repeat: no-repeat;
+  background-position: right top;
+}
+
+.bubble-header {
+  min-height: 42px;
+  margin: -4px -2px 8px;
+  padding: 2px 4px;
+  background-size: 310px 48px;
+}
+
+.bubble-title,
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+}
+
+.bubble-title {
+  color: var(--firefly-night);
+  font-size: 15px;
+  text-shadow: 0 1px 12px rgba(84, 215, 215, 0.26);
+}
+
+.theme-title-icon {
+  display: block;
+  object-fit: contain;
+  flex: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.theme-title-icon-wing { width: 42px; height: 38px; }
+.theme-title-icon-crystal { width: 36px; height: 36px; }
+
+#bubble .btn.icon {
+  color: rgba(28, 49, 72, 0.58);
+}
+
+#bubble .btn.icon:hover {
+  color: var(--firefly-pink);
+}
+
+.bubble-arrow {
+  position: absolute;
+  bottom: -10px;
+  border-width: 10px;
+  border-top-color: rgba(245, 242, 240, 0.97);
+  filter: drop-shadow(0 3px 2px rgba(11, 22, 48, 0.12));
+}
+
+.chat-log {
+  min-height: 58px;
+  padding: 10px 9px;
+  border: 1px solid rgba(127, 207, 202, 0.34);
+  border-radius: 15px;
+  background: rgba(245, 242, 240, 0.94);
+  box-shadow: inset 0 1px 8px rgba(11, 22, 48, 0.07);
+  color: var(--firefly-ink);
+  scrollbar-color: rgba(84, 215, 215, 0.72) transparent;
+  scrollbar-width: thin;
+}
+
+.chat-avatar {
+  filter: drop-shadow(0 2px 4px rgba(11, 22, 48, 0.18));
+}
+
+.chat-bubble {
+  color: var(--firefly-ink);
+  background: linear-gradient(145deg, rgba(245, 242, 240, 0.98), rgba(211, 242, 237, 0.97));
+  border: 1px solid rgba(127, 207, 202, 0.42);
+  box-shadow: 0 3px 9px rgba(11, 22, 48, 0.08);
+}
+
+.chat-msg.user .chat-bubble {
+  color: #fff;
+  background: linear-gradient(145deg, #2D7C81, #1D5C68);
+  border-color: rgba(84, 215, 215, 0.44);
+  box-shadow: 0 4px 12px rgba(11, 22, 48, 0.18);
+}
+
+.chat-input-row {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(127, 207, 202, 0.32);
+  border-radius: 14px;
+  background: rgba(245, 242, 240, 0.95);
+  box-shadow: 0 5px 14px rgba(3, 10, 25, 0.13);
+}
+
+.chat-input-row .input {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+#panel {
+  isolation: isolate;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(127, 207, 202, 0.68);
+  border-radius: 22px;
+  color: var(--firefly-ink);
+  background: rgba(245, 242, 240, 0.95);
+  box-shadow:
+    0 16px 42px rgba(11, 22, 48, 0.18),
+    0 0 24px rgba(84, 215, 215, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+#panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    url("assets/ui-theme/firefly/ornaments/chest-crystal.png"),
+    url("assets/ui-theme/firefly/patterns/diamond-tile.png");
+  background-position: right -24px bottom -42px, center;
+  background-size: 210px 210px, 430px 430px;
+  background-repeat: no-repeat, repeat;
+  opacity: 0.055;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#panel .theme-particle.particle-cyan { left: 9px; top: 84px; opacity: 0.32; }
+#panel .theme-particle.particle-gold { right: 82px; top: 2px; opacity: 0.50; }
+#panel .theme-particle.particle-pink { right: 8px; bottom: 62px; opacity: 0.30; }
+
+.panel-header {
+  margin: -4px -4px 10px;
+  padding: 4px 6px 10px;
+  border-bottom: 1px solid rgba(84, 215, 215, 0.25);
+  background-size: 520px 82px;
+}
+
+.panel-title {
+  color: var(--firefly-night);
+  font-size: 18px;
+}
+
+.tabs {
+  gap: 8px;
+}
+
+.tab {
+  position: relative;
+  color: #506173;
+  border: 1px solid transparent;
+  transition: color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.tab:hover {
+  color: #21636a;
+  background: rgba(127, 207, 202, 0.13);
+}
+
+.tab.active {
+  color: #184f56;
+  border-color: rgba(84, 215, 215, 0.38);
+  background: linear-gradient(145deg, rgba(211, 242, 237, 0.94), rgba(245, 242, 240, 0.7));
+  box-shadow: inset 0 -2px 0 var(--firefly-cyan);
+}
+
+.list-item {
+  border: 1px solid transparent;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.list-item:hover {
+  border-color: rgba(84, 215, 215, 0.22);
+  background: rgba(211, 242, 237, 0.55);
+}
+
+.item-sub:hover { color: #226A72; }
+.rem-meta, .chat-hint { color: #71808d; }
+.field-label { color: #536373; }
+
+.form {
+  border: 1px solid rgba(127, 207, 202, 0.25);
+  background: rgba(232, 242, 240, 0.72);
+}
+
+.input, select.input, textarea.input {
+  color: var(--firefly-ink);
+  border-color: rgba(28, 49, 72, 0.19);
+  background: rgba(255, 255, 255, 0.88);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.input:focus {
+  border-color: var(--firefly-cyan);
+  box-shadow: 0 0 0 3px rgba(84, 215, 215, 0.14);
+}
+
+.btn {
+  color: #34495b;
+  border-color: rgba(28, 49, 72, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  transition: color 150ms ease-out, border-color 150ms ease-out, background-color 150ms ease-out, transform 150ms ease-out;
+}
+
+.btn:hover {
+  color: #226A72;
+  border-color: var(--firefly-cyan);
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn.primary {
+  color: #fff;
+  border-color: #2A747A;
+  background: linear-gradient(145deg, #3B9293, #226A72);
+  box-shadow: 0 4px 10px rgba(34, 106, 114, 0.20);
+}
+
+.btn.primary:hover {
+  color: #fff;
+  border-color: var(--firefly-cyan);
+  background: linear-gradient(145deg, #4BA7A4, #28767B);
+}
+
+.btn.danger { color: var(--firefly-coral); }
+.btn.danger:hover { border-color: var(--firefly-coral); }
+
+.btn.add {
+  color: #226A72;
+  border-color: rgba(84, 215, 215, 0.6);
+}
+
+.btn.add:hover { background: rgba(211, 242, 237, 0.62); }
+
+.panel-footer {
+  border-top-color: rgba(84, 215, 215, 0.26);
+}
+
+#notify-bubble {
+  border-color: var(--firefly-gold);
+  background: rgba(245, 242, 240, 0.96);
+  box-shadow: 0 10px 28px rgba(11, 22, 48, 0.22), 0 0 18px rgba(238, 175, 73, 0.14);
+}
+
+.chat-thinking {
+  color: #7d6b48;
+}
+
+.chat-thinking::before,
+.chat-err::before,
+.chat-cursor::before {
+  content: "";
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 3px;
+  vertical-align: -3px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.chat-thinking::before {
+  background-image: url("assets/ui-theme/firefly/particles/firefly-gold-32.png");
+}
+
+.chat-cursor {
+  color: var(--firefly-cyan);
+  text-shadow: 0 0 8px rgba(84, 215, 215, 0.72);
+}
+
+.chat-cursor::before {
+  width: 12px;
+  height: 12px;
+  background-image: url("assets/ui-theme/firefly/particles/firefly-cyan-32.png");
+}
+
+.chat-err {
+  color: var(--firefly-coral);
+}
+
+.chat-err::before {
+  background-image: url("assets/ui-theme/firefly/particles/firefly-pink-32.png");
+}
+
+#toast {
+  border: 1px solid rgba(84, 215, 215, 0.48);
+  background: rgba(11, 22, 48, 0.92);
+  box-shadow: 0 5px 18px rgba(3, 10, 25, 0.24);
+}
+
+@keyframes fireflyDrift {
+  0% { transform: translate3d(0, 0, 0) scale(0.92); opacity: 0.28; }
+  55% { opacity: 0.64; }
+  100% { transform: translate3d(8px, -9px, 0) scale(1.05); opacity: 0.42; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-particle,
+  .chat-cursor {
+    animation: none;
+  }
 }

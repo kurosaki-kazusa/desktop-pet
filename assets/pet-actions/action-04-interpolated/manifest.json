@@ -1,0 +1,24 @@
+{
+  "source": "action-04",
+  "method": "premultiplied-alpha midpoint interpolation",
+  "sourceFrames": 4,
+  "outputFrames": 8,
+  "frameMs": 130,
+  "sourceDurationMs": 1040,
+  "outputDurationMs": 1040,
+  "canvas": {
+    "width": 176,
+    "height": 196
+  },
+  "nonDestructive": true,
+  "files": [
+    "frame-01.png",
+    "frame-02.png",
+    "frame-03.png",
+    "frame-04.png",
+    "frame-05.png",
+    "frame-06.png",
+    "frame-07.png",
+    "frame-08.png"
+  ]
+}

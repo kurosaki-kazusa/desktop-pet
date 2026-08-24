@@ -17,8 +17,16 @@
 
   <!-- 交互面板（右键宠物弹出：大模型对话，上方回复气泡 + 底部输入框） -->
   <div id="bubble" class="card hidden interactive">
+    <div class="theme-particle-layer" aria-hidden="true">
+      <img class="theme-particle particle-cyan" src="assets/ui-theme/firefly/particles/firefly-cyan-64.png" alt="" draggable="false">
+      <img class="theme-particle particle-gold" src="assets/ui-theme/firefly/particles/firefly-gold-64.png" alt="" draggable="false">
+      <img class="theme-particle particle-pink" src="assets/ui-theme/firefly/particles/firefly-pink-64.png" alt="" draggable="false">
+    </div>
     <div class="bubble-header">
-      <span class="bubble-title">💬 和桌宠聊天</span>
+      <span class="bubble-title">
+        <img class="theme-title-icon theme-title-icon-wing" src="assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="" draggable="false">
+        <span>和桌宠聊天</span>
+      </span>
       <button id="bubble-close" class="btn icon" title="关闭">✕</button>
     </div>
 
@@ -36,9 +44,17 @@
 
   <!-- 配置中心（双击宠物打开：大配置框，管理全部常用命令 + 提醒） -->
   <div id="panel" class="card hidden interactive">
+    <div class="theme-particle-layer" aria-hidden="true">
+      <img class="theme-particle particle-cyan" src="assets/ui-theme/firefly/particles/firefly-cyan-64.png" alt="" draggable="false">
+      <img class="theme-particle particle-gold" src="assets/ui-theme/firefly/particles/firefly-gold-64.png" alt="" draggable="false">
+      <img class="theme-particle particle-pink" src="assets/ui-theme/firefly/particles/firefly-pink-64.png" alt="" draggable="false">
+    </div>
     <div class="panel-header">
       <div class="panel-top">
-        <span class="panel-title">⚙️ 配置中心</span>
+        <span class="panel-title">
+          <img class="theme-title-icon theme-title-icon-crystal" src="assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt="" draggable="false">
+          <span>配置中心</span>
+        </span>
         <button id="panel-close" class="btn icon" title="关闭">✕</button>
       </div>
       <div class="tabs">
