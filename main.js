@@ -106,11 +106,22 @@ const chatEngine = new ChatEngine({
   saveSummary: (s) => store.set('chat.historySummary', s)
 });
 
-// 首次启动预置：护眼提醒 + 使用时长提醒（用户可修改间隔）
+// 首次启动仅预置使用时长提醒（用户可修改间隔）；护眼提醒由用户按需创建
 function seedPresets() {
+  const reminders = Array.isArray(store.get('reminders')) ? store.get('reminders') : [];
+  const withoutLegacyEyePreset = reminders.filter((r) => !(
+    r.id === 'preset-eye'
+    && r.preset === 'eye'
+    && r.type === 'interval'
+    && r.intervalMin === 45
+    && r.text === '该休息眼睛啦，看看远处 20 秒'
+  ));
+  if (withoutLegacyEyePreset.length !== reminders.length) {
+    store.set('reminders', withoutLegacyEyePreset);
+  }
+
   if (store.get('seeded')) return;
   store.set('reminders', [
-    { id: 'preset-eye', type: 'interval', intervalMin: 45, text: '该休息眼睛啦，看看远处 20 秒', enabled: true, preset: 'eye' },
     { id: 'preset-usage', type: 'interval', intervalMin: 60, text: '已使用电脑 1 小时，起来活动一下、喝口水', enabled: true, preset: 'usage' }
   ]);
   store.set('seeded', true);

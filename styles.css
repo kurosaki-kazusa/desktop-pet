@@ -117,7 +117,15 @@ html, body {
 }
 .chat-msg { display: flex; gap: 6px; align-items: flex-end; }
 .chat-msg.user { justify-content: flex-end; }
-.chat-avatar { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.chat-avatar {
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+}
 .chat-bubble {
   background: #f2f6ff;
   border-radius: 12px 12px 12px 2px;
@@ -138,7 +146,7 @@ html, body {
   border-top: 1px solid #eee;
   padding-top: 8px;
 }
-.chat-input-row .chat-avatar { font-size: 26px; }
+.chat-input-row .chat-avatar { width: 36px; height: 36px; }
 .chat-input { flex: 1; }
 
 /* ---------- 配置中心（独立窗口 ?mode=config 居中铺开） ---------- */

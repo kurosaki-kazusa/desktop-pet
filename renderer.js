@@ -9,6 +9,7 @@ const isConfigWindow = new URLSearchParams(location.search).get('mode') === 'con
 if (isConfigWindow) document.body.classList.add('config-mode');
 
 let state = { reminders: [], commands: [], settings: {}, envFile: '' };
+const CHAT_AVATAR_SRC = 'assets/chat-avatar.png';
 
 // ---------- 工具 ----------
 function el(tag, cls, text) {
@@ -16,6 +17,13 @@ function el(tag, cls, text) {
   if (cls) node.className = cls;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+function chatAvatar() {
+  const avatar = el('img', 'chat-avatar');
+  avatar.src = CHAT_AVATAR_SRC;
+  avatar.alt = '桌宠头像';
+  avatar.draggable = false;
+  return avatar;
 }
 function newId(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -246,7 +254,7 @@ function closeBubble() {
 // 对话消息追加（who: 'bot' | 'user'，气泡内持续滚动）
 function addChatMessage(text, who) {
   const row = el('div', `chat-msg ${who}`);
-  if (who === 'bot') row.appendChild(el('span', 'chat-avatar', '🐱'));
+  if (who === 'bot') row.appendChild(chatAvatar());
   row.appendChild(el('div', 'chat-bubble', text));
   const log = $('#chat-log');
   log.appendChild(row);
@@ -265,7 +273,7 @@ let chatCursorEl = null; // 流式光标
 
 function openBotStreamRow() {
   chatBotRow = el('div', 'chat-msg bot');
-  chatBotRow.appendChild(el('span', 'chat-avatar', '🐱'));
+  chatBotRow.appendChild(chatAvatar());
   const body = el('div', 'chat-bubble');
   chatThinkEl = el('div', 'chat-thinking hidden');
   chatTextEl = el('div', 'chat-text');

@@ -1,7 +1,6 @@
-// make-icon.js · 应用图标生成：渲染桌宠同款 emoji 🐱 并截图为透明 PNG（assets/icon.png）
+// make-icon.js · 应用图标生成：将指定桌宠动作帧适配为透明 PNG（assets/icon.png）
 // 运行：npx electron scripts/make-icon.js
-// 原理：Chromium 用 Segoe UI Emoji（彩色 COLR 字体）渲染 emoji，与桌宠显示完全一致；
-//       透明窗口 capturePage 保留 alpha 通道，得到 512×512 透明背景图标。
+// 原理：把动作帧等比放入透明方形画布，保留角色全身与 alpha 通道，输出 512×512 图标源图。
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -9,8 +8,16 @@ const fs = require('fs');
 app.commandLine.appendSwitch('force-device-scale-factor', '1'); // 与主程序一致：物理像素
 
 const SIZE = 512;
+const ART_SIZE = 456;
+const source = path.join(__dirname, '..', 'assets', 'pet-actions', 'action-04', 'frame-03.png');
 
 app.whenReady().then(async () => {
+  if (!fs.existsSync(source)) {
+    console.error('图标源图不存在：' + source);
+    app.exit(1);
+    return;
+  }
+
   const win = new BrowserWindow({
     width: SIZE,
     height: SIZE,
@@ -25,17 +32,18 @@ app.whenReady().then(async () => {
     }
   });
 
+  const sourceData = fs.readFileSync(source).toString('base64');
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     html, body { margin: 0; background: transparent; overflow: hidden; }
-    .cat {
+    .icon {
       width: ${SIZE}px; height: ${SIZE}px;
       display: flex; align-items: center; justify-content: center;
-      font-size: ${Math.round(SIZE * 0.9)}px; line-height: 1;
     }
-  </style></head><body><div class="cat">🐱</div></body></html>`;
+    img { width: ${ART_SIZE}px; height: ${ART_SIZE}px; object-fit: contain; }
+  </style></head><body><div class="icon"><img src="data:image/png;base64,${sourceData}"></div></body></html>`;
 
   await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-  await new Promise((r) => setTimeout(r, 800)); // 等待 emoji 彩色字体渲染完成
+  await new Promise((r) => setTimeout(r, 200)); // 等待图片解码与首帧绘制完成
   const image = await win.webContents.capturePage();
 
   const out = path.join(__dirname, '..', 'assets', 'icon.png');
