@@ -43,3 +43,5 @@ desktop.ini
 # ---------- 缓存 ----------
 .cache/
 .eslintcache
+
+.agents/
