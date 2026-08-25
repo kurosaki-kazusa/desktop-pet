@@ -6,7 +6,14 @@ const $ = (sel) => document.querySelector(sel);
 const api = window.petAPI;
 
 const isConfigWindow = new URLSearchParams(location.search).get('mode') === 'config';
-if (isConfigWindow) document.body.classList.add('config-mode');
+if (isConfigWindow) {
+  document.body.classList.add('config-mode');
+  // 配置窗口必须在脚本顶层同步隐藏宠物/气泡/通知：
+  // 若等 init 里 await loadData() 之后再隐藏，IPC 往返期间宠物形象会在配置窗口闪现一瞬
+  document.getElementById('pet').classList.add('hidden');
+  document.getElementById('bubble').classList.add('hidden');
+  document.getElementById('notify-bubble').classList.add('hidden');
+}
 
 let state = { reminders: [], commands: [], settings: {}, envFile: '' };
 const CHAT_AVATAR_SRC = 'assets/chat-avatar.png';
@@ -859,9 +866,7 @@ async function init() {
   // fill() 读到空 state，导致已保存的 Key/人设永远不回显（表现似“配置无法长期存储”）
   if (isConfigWindow) {
     // 配置中心独立窗口：只显示配置面板（无宠物/气泡/通知），Esc 或 ✕ 关窗
-    $('#pet').classList.add('hidden');
-    $('#bubble').classList.add('hidden');
-    $('#notify-bubble').classList.add('hidden');
+    // （宠物/气泡/通知的隐藏已在脚本顶层同步完成，此处不再重复）
     $('#panel').classList.remove('hidden');
     createCommandWidget($('#cmd-widget-panel'));
     createReminderWidget($('#rem-widget-panel'));

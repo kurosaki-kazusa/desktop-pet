@@ -454,6 +454,7 @@ function registerIpc() {
       y,
       frame: false,
       transparent: true,
+      show: false, // 待首次渲染完成再显示（ready-to-show），避免加载期间内容闪现
       useContentSize: true,
       alwaysOnTop: true,
       resizable: false,
@@ -465,6 +466,7 @@ function registerIpc() {
         nodeIntegration: false
       }
     });
+    cfgWin.once('ready-to-show', () => cfgWin.show()); // 渲染完成后再显示窗口，消除闪现
     cfgWin.loadFile('index.html', { query: { mode: 'config' } });
     if (isTopEnabled()) cfgWin.setAlwaysOnTop(true, 'screen-saver'); // v2.4：与宠物窗口同级保活
     cfgWin.on('closed', () => { cfgWin = null; cfgPos = null; });
