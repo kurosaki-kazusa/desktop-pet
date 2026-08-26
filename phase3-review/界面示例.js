@@ -15,20 +15,20 @@
       { id: 'writing', name: '文稿写作', glyph: '✎', tone: 'cyan' }
     ],
     entries: [
-      { id: 'entry-poster', spaceId: 'poster', type: 'prompt', title: '产品海报视觉提示词', content: '为一款轻盈、未来感的桌面应用制作竖版海报。使用深蓝夜幕、青色晶体光、少量金色点缀，并保留清晰的信息层级。', cover: 'poster', pinned: true, favorite: true, updated: 8 },
-      { id: 'entry-character', spaceId: 'art', type: 'prompt', title: '角色立绘 · 流萤少女', content: 'anime character concept, pearl white hair, cyan crystal accessories, soft rim light, elegant silhouette, transparent background', cover: 'character', pinned: false, favorite: false, updated: 7 },
-      { id: 'entry-git', spaceId: 'commands', type: 'command', title: 'Git 提交并推送', content: 'git add .\ngit commit -m "update"\ngit push', cover: 'none', pinned: true, favorite: true, updated: 6 },
-      { id: 'entry-start', spaceId: 'commands', type: 'command', title: '启动本地项目', content: 'npm install\nnpm run dev', cover: 'none', pinned: false, favorite: false, updated: 5 },
-      { id: 'entry-weekly', spaceId: 'writing', type: 'prompt', title: '周报提炼助手', content: '请将以下工作记录整理为结构清晰的周报，按“本周完成、关键结果、风险与下周计划”输出，语气简洁专业。', cover: 'none', pinned: false, favorite: true, updated: 4 },
-      { id: 'entry-check', spaceId: 'commands', type: 'command', title: '检查 JavaScript 语法', content: 'node --check renderer.js', cover: 'none', pinned: false, favorite: false, updated: 3 },
-      { id: 'entry-negative', spaceId: 'art', type: 'prompt', title: '通用负面提示词', content: 'low quality, blurry, extra fingers, malformed hands, watermark, text artifacts, oversaturated colors', cover: 'none', pinned: false, favorite: false, updated: 2 },
-      { id: 'entry-outline', spaceId: 'writing', type: 'prompt', title: '课程大纲生成器', content: '根据学习目标与受众基础，生成包含导入、演示、练习和总结的 90 分钟课程大纲。', cover: 'none', pinned: false, favorite: false, updated: 1 }
+      { id: 'entry-poster', spaceId: 'poster', type: 'prompt', title: '产品海报视觉提示词', content: '为一款轻盈、未来感的桌面应用制作竖版海报。使用深蓝夜幕、青色晶体光、少量金色点缀，并保留清晰的信息层级。', cover: 'poster', pinned: true, updated: 8 },
+      { id: 'entry-character', spaceId: 'art', type: 'prompt', title: '角色立绘 · 流萤少女', content: 'anime character concept, pearl white hair, cyan crystal accessories, soft rim light, elegant silhouette, transparent background', cover: 'character', pinned: false, updated: 7 },
+      { id: 'entry-git', spaceId: 'commands', type: 'command', title: 'Git 提交并推送', content: 'git add .\ngit commit -m "update"\ngit push', cover: 'none', pinned: true, updated: 6 },
+      { id: 'entry-start', spaceId: 'commands', type: 'command', title: '启动本地项目', content: 'npm install\nnpm run dev', cover: 'none', pinned: false, updated: 5 },
+      { id: 'entry-weekly', spaceId: 'writing', type: 'prompt', title: '周报提炼助手', content: '请将以下工作记录整理为结构清晰的周报，按“本周完成、关键结果、风险与下周计划”输出，语气简洁专业。', cover: 'none', pinned: false, updated: 4 },
+      { id: 'entry-check', spaceId: 'commands', type: 'command', title: '检查 JavaScript 语法', content: 'node --check renderer.js', cover: 'none', pinned: false, updated: 3 },
+      { id: 'entry-negative', spaceId: 'art', type: 'prompt', title: '通用负面提示词', content: 'low quality, blurry, extra fingers, malformed hands, watermark, text artifacts, oversaturated colors', cover: 'none', pinned: false, updated: 2 },
+      { id: 'entry-outline', spaceId: 'writing', type: 'prompt', title: '课程大纲生成器', content: '根据学习目标与受众基础，生成包含导入、演示、练习和总结的 90 分钟课程大纲。', cover: 'none', pinned: false, updated: 1 }
     ],
     tasks: [
-      { id: 'task-review', kind: 'range', title: '确认三期界面方案', startDate: '2026-08-24', endDate: '2026-08-27', time: '10:30', priority: 'high', notes: '整理评审意见并冻结主要交互。', reminderId: 'reminder-review', completed: false },
-      { id: 'task-course', kind: 'range', title: '准备课程演示素材', startDate: '2026-08-25', endDate: '2026-08-30', time: '14:00', priority: 'normal', notes: '补充提示词管理的示例数据。', reminderId: null, completed: false },
+      { id: 'task-review', kind: 'range', title: '确认三期界面方案', startDate: '2026-08-20', endDate: '2026-09-05', time: '', priority: 'high', notes: '整理评审意见并冻结主要交互。', reminderId: 'reminder-review', completed: false },
+      { id: 'task-course', kind: 'range', title: '准备课程演示素材', startDate: '2026-08-25', endDate: '2026-08-30', time: '', priority: 'normal', notes: '补充提示词管理的示例数据。', reminderId: null, completed: false },
       { id: 'task-ideas', kind: 'range', title: '整理本周灵感', startDate: '2026-08-20', endDate: '2026-09-05', time: '', priority: 'low', notes: '把散落提示词归档到对应空间。', reminderId: null, completed: false },
-      { id: 'task-record', kind: 'range', title: '录制课程操作演示', startDate: '2026-08-26', endDate: '2026-08-28', time: '15:00', priority: 'high', notes: '录制高保真原型关键流程。', reminderId: null, completed: false },
+      { id: 'task-record', kind: 'range', title: '录制课程操作演示', startDate: '2026-08-26', endDate: '2026-08-28', time: '', priority: 'high', notes: '录制高保真原型关键流程。', reminderId: null, completed: false },
       { id: 'task-sync', kind: 'today', title: '临时同步视觉细节', date: '2026-08-25', time: '15:30', priority: 'normal', notes: '确认字号与日期区间展示。', reminderId: null, completed: false }
     ],
     reminders: [
@@ -45,7 +45,7 @@
     page: 'prompts', currentSpace: 'all', filter: 'all', search: '', sort: 'pinned',
     selectedDate: '2026-08-25', calendarYear: 2026, calendarMonth: 7,
     editingEntryId: null, editingTaskId: null, editingReminderId: null,
-    selectedDay: 25, customCover: null,
+    selectedDay: 25, customCover: null, coverFallback: 'character',
     rangePickerYear: 2026, rangePickerMonth: 7, selectingRangeEnd: false
   };
 
@@ -74,6 +74,14 @@
 
   const shortDate = (dateString) => dateString ? dateString.replaceAll('-', '/') : '请选择';
   const isDateInRange = (date, startDate, endDate) => Boolean(date && startDate && endDate && date >= startDate && date <= endDate);
+  const finalWeekStart = (endDate) => {
+    const date = new Date(`${endDate}T12:00:00`);
+    date.setDate(date.getDate() - 6);
+    return date.toISOString().slice(0, 10);
+  };
+  const shouldMapRangeTask = (task, date) => task.kind === 'range'
+    && isDateInRange(date, task.startDate, task.endDate)
+    && (task.priority === 'high' || date >= finalWeekStart(task.endDate));
 
   function showPage(page) {
     state.page = page;
@@ -122,9 +130,10 @@
 
   function entryCover(entry) {
     if (entry.cover === 'none') return '';
-    if (entry.cover?.startsWith('data:')) return `<div class="cover custom-cover" style="background-image:url('${entry.cover}')"><span class="cover-chip">本地例图</span></div>`;
-    if (entry.cover === 'character') return `<div class="cover cover-character"><img src="../assets/chat-avatar.png" alt="角色例图"><span class="cover-chip">角色例图</span></div>`;
-    return `<div class="cover cover-poster"><span class="pin">${entry.pinned ? '置顶' : '示例封面'}</span><div class="cover-copy"><small>NEON POSTER</small><strong>夏夜萤光</strong><span>Visual Study 03</span></div></div>`;
+    const copyButton = `<button type="button" class="cover-copy-button" data-entry-image-copy="${entry.id}">复制图片</button>`;
+    if (entry.cover?.startsWith('data:')) return `<div class="cover custom-cover" style="background-image:url('${entry.cover}')">${copyButton}<span class="cover-chip">本地图片</span></div>`;
+    if (entry.cover === 'character') return `<div class="cover cover-character">${copyButton}<img src="../assets/chat-avatar.png" alt="角色例图"><span class="cover-chip">角色例图</span></div>`;
+    return `<div class="cover cover-poster">${copyButton}<div class="cover-copy"><small>NEON POSTER</small><strong>夏夜萤光</strong><span>Visual Study 03</span></div><span class="cover-chip">萤光海报</span></div>`;
   }
 
   function renderEntries() {
@@ -143,9 +152,9 @@
       return `<article class="prompt-card ${compact ? 'compact' : 'featured'}" data-entry-id="${entry.id}" tabindex="0">
         ${entryCover(entry)}
         <div class="card-body">
-          <div class="card-meta"><span class="type ${entry.type}">${entry.type === 'prompt' ? '提示词' : '命令'}</span><span>${esc(spaceName)}</span>${entry.pinned ? '<span class="pin-text">◆ 置顶</span>' : ''}<button class="star ${entry.favorite ? 'active' : ''}" type="button" data-entry-favorite="${entry.id}" aria-label="收藏">${entry.favorite ? '★' : '☆'}</button></div>
+          <div class="card-meta"><span class="type ${entry.type}">${entry.type === 'prompt' ? '提示词' : '命令'}</span><span>${esc(spaceName)}</span>${entry.pinned ? '<span class="pin-text">◆ 置顶</span>' : ''}</div>
           <h3>${esc(entry.title)}</h3>
-          ${entry.type === 'command' ? `<pre>${esc(entry.content)}</pre>` : `<p>${esc(entry.content)}</p>`}
+          ${entry.type === 'command' ? `<pre class="card-copy">${esc(entry.content)}</pre>` : `<p class="card-copy">${esc(entry.content)}</p>`}
           <div class="card-footer"><span>${entry.updated >= 7 ? '今天更新' : `${entry.updated + 1} 天前更新`}</span><button type="button" class="copy-button" data-entry-copy="${entry.id}">复制</button></div>
         </div>
       </article>`;
@@ -170,12 +179,18 @@
     const preview = $('#entry-cover-preview');
     preview.className = 'drawer-cover';
     preview.style.backgroundImage = '';
-    if (value === 'character') preview.classList.add('character-preview');
-    if (value === 'poster') preview.classList.add('poster-preview');
-    if (value === 'none') preview.classList.add('no-cover-preview');
-    if (value === 'custom' && state.customCover) {
+    const imageMode = value === 'image';
+    $('#cover-preview-kicker').textContent = imageMode ? 'IMAGE CARD' : 'COMPACT CARD';
+    $('#cover-preview-title').textContent = imageMode ? '包含图片的卡片' : '无图片的紧凑卡片';
+    $('#cover-preview-hint').textContent = imageMode ? '图片可在卡片上快速复制' : '选择本地图片后自动切换为带图卡片';
+    if (!imageMode) preview.classList.add('no-cover-preview');
+    if (imageMode && state.customCover) {
       preview.classList.add('custom-preview');
       preview.style.backgroundImage = `linear-gradient(rgba(8,19,38,.08),rgba(8,19,38,.28)), url('${state.customCover}')`;
+    } else if (imageMode && state.coverFallback === 'poster') {
+      preview.classList.add('poster-preview');
+    } else if (imageMode) {
+      preview.classList.add('character-preview');
     }
   }
 
@@ -190,10 +205,10 @@
     $('#entry-space').value = entry?.spaceId || (state.currentSpace === 'all' ? state.spaces[0].id : state.currentSpace);
     $('#entry-title').value = entry?.title || '';
     $('#entry-content').value = entry?.content || '';
-    $('#entry-cover').value = entry?.cover?.startsWith('data:') ? 'custom' : (entry?.cover || 'none');
+    $('#entry-cover').value = entry?.cover && entry.cover !== 'none' ? 'image' : 'none';
     state.customCover = entry?.cover?.startsWith('data:') ? entry.cover : null;
+    state.coverFallback = entry?.cover && entry.cover !== 'none' && !entry.cover.startsWith('data:') ? entry.cover : 'character';
     $('#entry-pinned').checked = Boolean(entry?.pinned);
-    $('#entry-favorite').checked = Boolean(entry?.favorite);
     $('#entry-delete').hidden = !entry;
     $('#entry-char-count').textContent = `${$('#entry-content').value.length} / 2000`;
     updateCoverPreview();
@@ -222,9 +237,8 @@
       type: $('#entry-type').value,
       spaceId: $('#entry-space').value,
       title, content,
-      cover: coverChoice === 'custom' ? (state.customCover || 'none') : coverChoice,
+      cover: coverChoice === 'image' ? (state.customCover || state.coverFallback || 'character') : 'none',
       pinned: $('#entry-pinned').checked,
-      favorite: $('#entry-favorite').checked,
       updated: 99
     };
     if (state.editingEntryId) {
@@ -241,6 +255,31 @@
   function copyText(text, label = '内容') {
     navigator.clipboard?.writeText(text).catch(() => {});
     toast(`${label}已复制`);
+  }
+
+  function entryImageSource(entry) {
+    if (entry.cover?.startsWith('data:')) return entry.cover;
+    if (entry.cover === 'character') return new URL('../assets/chat-avatar.png', location.href).href;
+    return new URL('../assets/ui-theme/firefly/backgrounds/chat-night.png', location.href).href;
+  }
+
+  async function copyEntryImage(entry) {
+    try {
+      const response = await fetch(entryImageSource(entry));
+      const sourceBlob = await response.blob();
+      const bitmap = await createImageBitmap(sourceBlob);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!pngBlob || !navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('image clipboard unsupported');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+      toast('图片已复制');
+    } catch {
+      toast('当前环境暂不支持复制图片', '!');
+    }
   }
 
   function openSpaceDialog(mode = 'create', spaceId = null) {
@@ -322,6 +361,7 @@
 
   function taskCard(task, context) {
     const mappedRange = context === 'today' && task.kind === 'range';
+    const mappedReason = task.priority === 'high' ? '高优先级 · 区间内同步' : '已进入任务最后一周';
     const origin = context === 'today'
       ? `<span class="task-origin ${task.kind}">${mappedRange ? '来自长期待办' : '当日新增'}</span>`
       : '<span class="task-origin range">长期事务</span>';
@@ -331,8 +371,8 @@
     return `<article class="task-card priority-${task.priority} source-${task.kind}" data-task-id="${task.id}" tabindex="0">
       <div class="task-top"><div>${origin}<span>${priorityLabel(task.priority)}</span></div><div><button type="button" class="complete-task" data-task-complete="${task.id}" title="标记完成">✓ 完成</button><button type="button" class="task-more" aria-label="编辑任务">•••</button></div></div>
       <h3>${esc(task.title)}</h3><p>${esc(task.notes || '暂无备注')}</p>
-      ${mappedRange ? `<div class="range-progress"><i></i><span>当前日期处于任务区间内</span></div>` : ''}
-      <footer><span>${task.time ? `◷ ${task.time}` : '全天'}</span><span class="task-date-meta">${dateText}</span>${task.reminderId ? '<span>◉ 已提醒</span>' : ''}</footer>
+      ${mappedRange ? `<div class="range-progress"><i></i><span>${mappedReason}</span></div>` : ''}
+      <footer>${task.kind === 'today' ? `<span>${task.time ? `◷ ${task.time}` : '全天'}</span>` : ''}<span class="task-date-meta">${dateText}</span>${task.reminderId ? '<span>◉ 已提醒</span>' : ''}</footer>
     </article>`;
   }
 
@@ -341,7 +381,7 @@
     const matches = (task) => !keyword || `${task.title} ${task.notes}`.toLocaleLowerCase('zh-CN').includes(keyword);
     const active = state.tasks.filter((task) => !task.completed && matches(task));
     const rangeTasks = active.filter((task) => task.kind === 'range');
-    const todayTasks = active.filter((task) => task.kind === 'today' ? task.date === state.selectedDate : isDateInRange(state.selectedDate, task.startDate, task.endDate));
+    const todayTasks = active.filter((task) => task.kind === 'today' ? task.date === state.selectedDate : shouldMapRangeTask(task, state.selectedDate));
     $('#task-search').placeholder = '搜索长期待办与今日事项';
     $('[data-task-count="range"]').textContent = String(rangeTasks.length);
     $('[data-task-count="today"]').textContent = String(todayTasks.length);
@@ -354,11 +394,17 @@
 
   function updateTaskKind(kind) {
     $('#task-kind').value = kind;
-    $$('[data-task-kind]').forEach((button) => button.classList.toggle('active', button.dataset.taskKind === kind));
     $('#task-range-field').hidden = kind !== 'range';
     $('#task-date-field').hidden = kind !== 'today';
-    $('#task-dialog-title').textContent = state.editingTaskId ? '编辑任务' : kind === 'range' ? '新建长期待办' : '新建当日事项';
-    $('#task-dialog-subtitle').textContent = kind === 'range' ? '设置日期区间，期间每天自动出现在今日事项' : '记录当天临时出现、无需长期跟踪的事务';
+    $('#task-time-field').hidden = kind !== 'today';
+    $('#task-dialog-title').textContent = `${state.editingTaskId ? '编辑' : '新建'}${kind === 'range' ? '长期待办' : '当日事项'}`;
+    $('#task-dialog-subtitle').textContent = kind === 'range' ? '设置日期区间；高优先级全程同步，其余仅在最后一周进入今日事项' : '记录当天临时事务，可按需启用具体时间';
+  }
+
+  function updateTaskTimeState(enabled) {
+    $('#task-time-enabled').checked = enabled;
+    $('#task-time').disabled = !enabled;
+    $('#task-time-field').classList.toggle('enabled', enabled);
   }
 
   function updateTaskRangeDisplay() {
@@ -421,9 +467,10 @@
     defaultEnd.setDate(defaultEnd.getDate() + 3);
     $('#task-end-date').value = task?.endDate || defaultEnd.toISOString().slice(0, 10);
     $('#task-time').value = task?.time || '10:30';
+    updateTaskTimeState(kind === 'today' && Boolean(task?.time));
     $('#task-priority').value = task?.priority || 'normal';
     $('#task-notes').value = task?.notes || '';
-    $('#task-reminder').checked = Boolean(task?.reminderId);
+    $('#task-reminder').checked = task ? Boolean(task.reminderId) : false;
     $('#task-delete').hidden = !task;
     state.rangePickerYear = Number($('#task-start-date').value.slice(0, 4));
     state.rangePickerMonth = Number($('#task-start-date').value.slice(5, 7)) - 1;
@@ -453,7 +500,7 @@
       date: kind === 'today' ? $('#task-date').value : undefined,
       startDate: kind === 'range' ? $('#task-start-date').value : undefined,
       endDate: kind === 'range' ? $('#task-end-date').value : undefined,
-      time: $('#task-time').value,
+      time: kind === 'today' && $('#task-time-enabled').checked ? $('#task-time').value : '',
       priority: $('#task-priority').value,
       notes: $('#task-notes').value.trim(),
       completed: false
@@ -547,52 +594,13 @@
       if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
       if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
       const date = `${cellYear}-${String(cellMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      calendarDays.push({ day, date, muted, week: Math.floor(index / 7) });
+      calendarDays.push({ day, date, muted });
     }
 
-    const activeRanges = state.tasks.filter((task) => !task.completed && task.kind === 'range');
-    const laneByWeekAndTask = new Map();
-    const laneCountByWeek = Array(6).fill(0);
-    for (let week = 0; week < 6; week += 1) {
-      const weekStart = calendarDays[week * 7].date;
-      const weekEnd = calendarDays[week * 7 + 6].date;
-      const laneEnds = [];
-      activeRanges
-        .filter((task) => task.startDate <= weekEnd && task.endDate >= weekStart)
-        .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate) || a.id.localeCompare(b.id))
-        .forEach((task) => {
-          const visibleStart = task.startDate < weekStart ? weekStart : task.startDate;
-          const visibleEnd = task.endDate > weekEnd ? weekEnd : task.endDate;
-          let lane = laneEnds.findIndex((endDate) => endDate < visibleStart);
-          if (lane < 0) lane = laneEnds.length;
-          laneEnds[lane] = visibleEnd;
-          laneByWeekAndTask.set(`${week}:${task.id}`, lane);
-        });
-      laneCountByWeek[week] = laneEnds.length;
-    }
-
-    const cells = calendarDays.map(({ day, date, muted, week }) => {
-      const rangeTasks = activeRanges.filter((task) => isDateInRange(date, task.startDate, task.endDate));
-      const todayTasks = state.tasks.filter((task) => !task.completed && task.kind === 'today' && task.date === date);
-      const reminders = state.reminders.filter((reminder) => reminder.type === 'absolute' && reminder.date === date);
+    const cells = calendarDays.map(({ day, date, muted }) => {
       const isToday = date === PROTOTYPE_TODAY;
-      const maxRows = 5;
-      const rangeEvents = rangeTasks
-        .map((task) => ({ task, lane: laneByWeekAndTask.get(`${week}:${task.id}`) }))
-        .filter(({ lane }) => lane < maxRows)
-        .sort((a, b) => a.lane - b.lane)
-        .map(({ task, lane }) => {
-        const segment = date === task.startDate ? 'range-start' : date === task.endDate ? 'range-end' : 'range-mid';
-          return `<i class="event range ${segment}" data-range-task="${esc(task.id)}" data-calendar-week="${week}" data-range-lane="${lane}" style="--event-row:${lane}"><span>${segment === 'range-start' ? '开始 · ' : segment === 'range-end' ? '结束 · ' : ''}</span>${esc(task.title)}</i>`;
-        });
-      let nextRow = Math.min(laneCountByWeek[week], maxRows);
-      const todayEvents = todayTasks.slice(0, Math.max(0, maxRows - nextRow)).map((task, index) => `<i class="event task today-event" style="--event-row:${nextRow + index}">${esc(task.title)}</i>`);
-      nextRow += todayEvents.length;
-      const reminderEvents = reminders.slice(0, Math.max(0, maxRows - nextRow)).map((reminder, index) => `<i class="event reminder" style="--event-row:${nextRow + index}">${esc(reminder.value)} ${esc(reminder.title)}</i>`);
-      const totalEvents = rangeTasks.length + todayTasks.length + reminders.length;
-      const renderedEvents = rangeEvents.length + todayEvents.length + reminderEvents.length;
       return `<button type="button" class="calendar-day ${muted ? 'muted' : ''} ${isToday ? 'today' : ''} ${state.selectedDay === day && !muted ? 'selected' : ''}" data-day="${day}" data-date="${date}" ${muted ? 'data-muted="true"' : ''}>
-        <b>${day}</b>${rangeEvents.join('')}${todayEvents.join('')}${reminderEvents.join('')}${totalEvents > renderedEvents ? `<em>+${totalEvents - renderedEvents}</em>` : ''}
+        <b>${day}</b>
       </button>`;
     });
     $('#calendar-grid').innerHTML = cells.join('');
@@ -606,7 +614,7 @@
     renderTasks();
     $('#day-panel-title').textContent = `${parsed.getMonth() + 1} 月 ${parsed.getDate()} 日 · ${weekdays[parsed.getDay()]}`;
     const items = [
-      ...state.tasks.filter((task) => !task.completed && (task.kind === 'today' ? task.date === date : isDateInRange(date, task.startDate, task.endDate))).map((task) => ({ type: 'task', source: task.kind, title: task.title, meta: task.kind === 'range' ? `${task.time || '全天'} · 区间 ${shortDate(task.startDate)}—${shortDate(task.endDate)}` : `${task.time || '全天'} · 当日新增` })),
+      ...state.tasks.filter((task) => !task.completed && (task.kind === 'today' ? task.date === date : isDateInRange(date, task.startDate, task.endDate))).map((task) => ({ type: 'task', source: task.kind, title: task.title, meta: task.kind === 'range' ? `区间 ${shortDate(task.startDate)}—${shortDate(task.endDate)}` : `${task.time || '全天'} · 当日新增` })),
       ...state.reminders.filter((reminder) => reminder.type === 'absolute' && reminder.date === date).map((reminder) => ({ type: 'reminder', title: reminder.title, meta: `${reminder.value} · 定点提醒` }))
     ];
     $('#day-panel-list').innerHTML = items.length ? items.map((item) => `<article><span class="day-item-icon ${item.type}">${item.type === 'task' ? '✓' : '◷'}</span><div>${item.source ? `<span class="day-source ${item.source}">${item.source === 'range' ? '区间任务' : '当日任务'}</span>` : ''}<strong>${esc(item.title)}</strong><small>${esc(item.meta)}</small></div></article>`).join('') : '<div class="day-empty"><span>☾</span><strong>当天没有安排</strong><p>留一点空白，也是一种节奏。</p></div>';
@@ -734,7 +742,7 @@
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return toast('请选择 PNG、JPEG 或 WebP 图片', '!');
       if (file.size > 5 * 1024 * 1024) return toast('例图不能超过 5MB', '!');
       const reader = new FileReader();
-      reader.onload = () => { state.customCover = reader.result; $('#entry-cover').value = 'custom'; updateCoverPreview(); toast('例图已载入，仅本次页面有效'); };
+      reader.onload = () => { state.customCover = reader.result; $('#entry-cover').value = 'image'; updateCoverPreview(); toast('图片已载入，卡片已切换为带图样式'); };
       reader.readAsDataURL(file);
     });
     $('#entry-copy').addEventListener('click', () => copyText($('#entry-content').value, '正文'));
@@ -746,11 +754,11 @@
       closeEntryDrawer(); renderEntries(); toast('内容已删除');
     });
     $('#prompt-grid').addEventListener('click', (event) => {
+      const imageCopy = event.target.closest('[data-entry-image-copy]');
       const copy = event.target.closest('[data-entry-copy]');
-      const favorite = event.target.closest('[data-entry-favorite]');
       const card = event.target.closest('[data-entry-id]');
+      if (imageCopy) { event.stopPropagation(); const entry = state.entries.find((item) => item.id === imageCopy.dataset.entryImageCopy); copyEntryImage(entry); return; }
       if (copy) { event.stopPropagation(); const entry = state.entries.find((item) => item.id === copy.dataset.entryCopy); copyText(entry.content, entry.type === 'command' ? '命令' : '提示词'); return; }
-      if (favorite) { event.stopPropagation(); const entry = state.entries.find((item) => item.id === favorite.dataset.entryFavorite); entry.favorite = !entry.favorite; renderEntries(); toast(entry.favorite ? '已加入收藏' : '已取消收藏'); return; }
       if (card) openEntryDrawer(card.dataset.entryId);
     });
     $('#prompt-grid').addEventListener('dblclick', (event) => {
@@ -775,7 +783,7 @@
     $('#task-form').addEventListener('submit', saveTask);
     $('#task-delete').addEventListener('click', () => deleteTask(state.editingTaskId));
     $('#task-search').addEventListener('input', renderTasks);
-    $$('[data-task-kind]').forEach((button) => button.addEventListener('click', () => updateTaskKind(button.dataset.taskKind)));
+    $('#task-time-enabled').addEventListener('change', (event) => updateTaskTimeState(event.target.checked));
     $('#task-range-trigger').addEventListener('click', () => {
       $('#range-picker').hidden = !$('#range-picker').hidden;
       if (!$('#range-picker').hidden) renderRangePicker();

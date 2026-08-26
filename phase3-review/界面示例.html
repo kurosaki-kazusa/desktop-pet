@@ -64,7 +64,7 @@
           <label class="sort-control"><span>排序</span><select id="entry-sort"><option value="pinned">置顶优先</option><option value="updated">最近更新</option><option value="title">标题 A–Z</option></select></label>
         </div>
 
-        <div class="result-line"><span><b id="result-count">0</b> 条内容</span><span id="result-hint">有封面显示大卡片，无封面显示紧凑卡片</span></div>
+        <div class="result-line"><span><b id="result-count">0</b> 条内容</span><span id="result-hint">带图卡片固定显示 3 行正文，紧凑卡片固定显示 4 行正文</span></div>
         <div class="card-grid" id="prompt-grid"></div>
         <div class="empty-state" id="entry-empty" hidden>
           <span>⌕</span><h3>没有找到匹配内容</h3><p>尝试更换关键词或筛选条件，也可以新建一条内容。</p><button type="button" class="ghost-button" data-clear-filter>清除筛选</button>
@@ -93,12 +93,12 @@
           <div class="kanban-board">
             <section class="kanban-column todo-column" data-status="range">
               <header><div><span class="column-dot"></span><strong>长期待办</strong><b data-task-count="range">0</b></div><button type="button" data-quick-task="range" aria-label="新增长期待办">＋</button></header>
-              <p class="column-description">持续性事务 · 按日期区间自动进入今日事项</p>
+              <p class="column-description">高优先级区间内同步 · 其余仅最后一周进入今日事项</p>
               <div class="task-list" data-task-list="range"></div>
             </section>
             <section class="kanban-column doing-column" data-status="today">
               <header><div><span class="column-dot"></span><strong>今日事项</strong><b data-task-count="today">0</b></div><button type="button" data-quick-task="today" aria-label="新增当日事项">＋</button></header>
-              <p class="column-description">区间自动映射 + 当日偶发事项</p>
+              <p class="column-description">长期任务按规则映射 + 当日偶发事项</p>
               <div class="task-list" data-task-list="today"></div>
             </section>
           </div>
@@ -122,7 +122,7 @@
         <div class="schedule-view" id="schedule-reminders">
           <div class="reminder-shell">
             <header><div><span class="eyebrow">REMINDER CENTER</span><h2>提醒管理</h2><p>周期与使用时长提醒不会重复显示在月历。</p></div><div><button type="button" class="ghost-button" data-schedule-view="board">返回看板</button><button type="button" class="primary-button" data-open="reminder-create">＋ 新增提醒</button></div></header>
-            <div class="reminder-stats"><span><b id="reminder-enabled-count">0</b> 条已启用</span><span>定点提醒会同步显示到日程表</span></div>
+            <div class="reminder-stats"><span><b id="reminder-enabled-count">0</b> 条已启用</span><span>点击日程日期可在详情中查看定点提醒</span></div>
             <div class="reminder-list" id="reminder-list"></div>
           </div>
         </div>
@@ -170,7 +170,7 @@
       <header><div><span class="drawer-mode" id="entry-mode-label">编辑内容</span><b id="entry-drawer-type">提示词</b></div><button type="button" id="entry-drawer-close" aria-label="关闭">×</button></header>
       <form id="entry-form">
         <div class="drawer-cover" id="entry-cover-preview">
-          <div><small>FIREFLY COLLECTION</small><strong>灵感封面</strong><span>可选 · 无封面时显示紧凑卡片</span></div>
+          <div><small id="cover-preview-kicker">COMPACT CARD</small><strong id="cover-preview-title">无图片的紧凑卡片</strong><span id="cover-preview-hint">选择本地图片后自动切换为带图卡片</span></div>
           <label class="cover-upload"><input type="file" id="entry-cover-file" accept="image/png,image/jpeg,image/webp">选择本地图片</label>
         </div>
         <div class="drawer-content">
@@ -181,8 +181,8 @@
           </div>
           <label class="field"><span>标题 <b>*</b></span><input id="entry-title" maxlength="60" placeholder="输入便于识别的标题"><small class="field-error" data-error-for="entry-title"></small></label>
           <label class="field"><span>正文 <b>*</b></span><textarea id="entry-content" maxlength="2000" placeholder="输入提示词或多行命令"></textarea><small class="field-meta"><span class="field-error" data-error-for="entry-content"></span><i id="entry-char-count">0 / 2000</i></small></label>
-          <label class="field"><span>卡片封面</span><select id="entry-cover"><option value="none">无封面 · 紧凑卡片</option><option value="poster">萤光海报</option><option value="character">角色例图</option><option value="custom">本次选择的图片</option></select></label>
-          <div class="drawer-options"><label><input type="checkbox" id="entry-pinned">置顶</label><label><input type="checkbox" id="entry-favorite">收藏</label><span>命令仅可复制，不会执行</span></div>
+          <label class="field"><span>卡片封面</span><select id="entry-cover"><option value="image">包含图片的卡片</option><option value="none">无图片的紧凑卡片</option></select></label>
+          <div class="drawer-options"><label><input type="checkbox" id="entry-pinned">置顶</label><span>命令仅可复制，不会执行</span></div>
         </div>
         <footer><button type="button" class="danger-text" id="entry-delete">删除</button><div><button type="button" class="ghost-button" id="entry-copy">复制全文</button><button type="submit" class="primary-button" id="entry-save">保存内容</button></div></footer>
       </form>
@@ -205,10 +205,6 @@
         <div class="modal-body">
           <input type="hidden" id="task-id">
           <input type="hidden" id="task-kind" value="range">
-          <div class="task-kind-switch" aria-label="任务类型">
-            <button type="button" class="active" data-task-kind="range"><span>▰</span><div><strong>长期待办</strong><small>设置开始与结束日期</small></div></button>
-            <button type="button" data-task-kind="today"><span>◉</span><div><strong>当日事项</strong><small>当天临时发生的事务</small></div></button>
-          </div>
           <label class="field"><span>任务标题 <b>*</b></span><input id="task-title" maxlength="60" placeholder="今天要完成什么？"><small class="field-error" data-error-for="task-title"></small></label>
           <div class="task-range-field" id="task-range-field">
             <span>项目日期区间</span>
@@ -224,11 +220,14 @@
           </div>
           <div class="field-grid two task-basic-grid">
             <label id="task-date-field" hidden><span>事项日期</span><input id="task-date" type="date" value="2026-08-25"></label>
-            <label><span>时间</span><input id="task-time" type="time" value="10:30"></label>
+            <div class="optional-time-field" id="task-time-field" hidden>
+              <div class="optional-time-heading"><span>时间 <small>非必选</small></span><label class="optional-time-toggle"><input id="task-time-enabled" type="checkbox"><span>设置时间</span></label></div>
+              <input id="task-time" type="time" value="10:30" disabled>
+            </div>
             <label><span>优先级</span><select id="task-priority"><option value="normal">普通</option><option value="high">高优先级</option><option value="low">低优先级</option></select></label>
           </div>
           <label class="field"><span>备注</span><textarea id="task-notes" placeholder="补充任务说明"></textarea></label>
-          <label class="check-row"><input type="checkbox" id="task-reminder"><span><strong>到点提醒</strong><small>创建关联定点提醒，并显示在月历</small></span></label>
+          <label class="check-row"><input type="checkbox" id="task-reminder"><span><strong>到点提醒</strong><small>创建关联定点提醒，并显示在日期详情</small></span></label>
         </div>
         <footer><button type="button" class="danger-text" id="task-delete">删除任务</button><div><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button" id="task-save">保存任务</button></div></footer>
       </form>

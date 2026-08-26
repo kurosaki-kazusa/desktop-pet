@@ -19,7 +19,8 @@ const screens = [
   ['03-内容详情编辑.png', 'page=prompts&drawer=1', 1280, 820],
   ['04-长期待办与今日事项.png', 'page=schedule&view=board', 1280, 820],
   ['05-待办日期区间选择.png', 'page=schedule&view=board&task=range&picker=1', 1280, 820],
-  ['06-日程表区间任务.png', 'page=schedule&view=calendar&day=25', 1280, 820],
+  ['05B-当日事项表单.png', 'page=schedule&view=board&task=today', 1280, 820],
+  ['06-日程表日期详情.png', 'page=schedule&view=calendar&day=25', 1280, 820],
   ['07-提醒管理.png', 'page=schedule&view=reminders', 1280, 820],
   ['08-新增定点提醒弹窗.png', 'page=schedule&view=reminders&reminder=1', 1280, 820],
   ['09-设置.png', 'page=settings', 1280, 820],
@@ -52,18 +53,40 @@ async function runInteractionQA(win) {
     const waitUntil = async (predicate) => { for (let i = 0; i < 20; i += 1) { if (predicate()) return true; await new Promise((resolve) => setTimeout(resolve, 40)); } return false; };
     click('[data-open="entry-create"]');
     const opened = document.querySelector('#entry-drawer')?.classList.contains('open');
+    const favoriteUiRemoved = !document.querySelector('#entry-favorite') && !document.querySelector('[data-entry-favorite]');
+    const coverOptions = JSON.stringify([...document.querySelectorAll('#entry-cover option')].map((option) => [option.value, option.textContent]));
+    const defaultCompact = document.querySelector('#entry-cover').value === 'none' && document.querySelector('#entry-cover-preview').classList.contains('no-cover-preview');
     document.querySelector('#entry-title').value = '课堂演示检查清单';
     document.querySelector('#entry-content').value = '核对导航、表单、空状态与最小窗口。';
     click('#entry-save');
     await new Promise((resolve) => setTimeout(resolve, 80));
     const created = [...document.querySelectorAll('.prompt-card h3')].some((node) => node.textContent === '课堂演示检查清单');
     const createdCard = [...document.querySelectorAll('.prompt-card')].find((node) => node.querySelector('h3')?.textContent === '课堂演示检查清单');
+    const createdCompact = createdCard.classList.contains('compact') && !createdCard.querySelector('.cover');
     createdCard.click();
     document.querySelector('#entry-title').value = '课堂演示验收清单';
+    document.querySelector('#entry-cover').value = 'image';
+    document.querySelector('#entry-cover').dispatchEvent(new Event('change', { bubbles: true }));
     click('#entry-save');
     await new Promise((resolve) => setTimeout(resolve, 80));
     const edited = [...document.querySelectorAll('.prompt-card h3')].some((node) => node.textContent === '课堂演示验收清单');
-    [...document.querySelectorAll('.prompt-card')].find((node) => node.querySelector('h3')?.textContent === '课堂演示验收清单').click();
+    const editedCard = [...document.querySelectorAll('.prompt-card')].find((node) => node.querySelector('h3')?.textContent === '课堂演示验收清单');
+    const compactUpgradedToFeatured = editedCard.classList.contains('featured') && Boolean(editedCard.querySelector('.cover'));
+    const imageCopyOnlyOnFeatured = [...document.querySelectorAll('.prompt-card.featured')].every((card) => card.querySelector('[data-entry-image-copy]'))
+      && [...document.querySelectorAll('.prompt-card.compact')].every((card) => !card.querySelector('[data-entry-image-copy]'));
+    const featuredHeights = [...document.querySelectorAll('.prompt-card.featured')].map((card) => card.getBoundingClientRect().height);
+    const compactHeights = [...document.querySelectorAll('.prompt-card.compact')].map((card) => card.getBoundingClientRect().height);
+    const fixedCardSizes = Math.max(...featuredHeights) - Math.min(...featuredHeights) < 0.5
+      && Math.max(...compactHeights) - Math.min(...compactHeights) < 0.5;
+    const textQuotas = getComputedStyle(document.querySelector('.prompt-card.featured .card-copy')).webkitLineClamp === '3'
+      && getComputedStyle(document.querySelector('.prompt-card.compact .card-copy')).webkitLineClamp === '4';
+    window.__imageCopies = 0;
+    if (typeof ClipboardItem === 'undefined') window.ClipboardItem = class { constructor(data) { this.data = data; } };
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {}, write: async (items) => { window.__imageCopies += items.length; } } });
+    editedCard.querySelector('[data-entry-image-copy]').click();
+    const imageCopied = await waitUntil(() => window.__imageCopies === 1);
+    const imageCopyDidNotOpenDrawer = !document.querySelector('#entry-drawer').classList.contains('open');
+    editedCard.click();
     click('#entry-delete');
     await new Promise((resolve) => setTimeout(resolve, 80));
     click('#confirm-primary');
@@ -74,9 +97,14 @@ async function runInteractionQA(win) {
     click('#space-save');
     await new Promise((resolve) => setTimeout(resolve, 80));
     const spaceCreated = [...document.querySelectorAll('.space-item')].some((node) => node.textContent.includes('课程演示'));
-    return { opened, created, edited, deleted, spaceCreated, entries: document.querySelectorAll('.prompt-card').length };
+    return { opened, favoriteUiRemoved, coverOptions, defaultCompact, created, createdCompact, edited, compactUpgradedToFeatured, imageCopyOnlyOnFeatured, fixedCardSizes, textQuotas, imageCopied, imageCopyDidNotOpenDrawer, deleted, spaceCreated, entries: document.querySelectorAll('.prompt-card').length };
   })()`);
   assert(promptFlow.opened && promptFlow.created && promptFlow.edited && promptFlow.deleted, `内容 CRUD 流程失败：${JSON.stringify(promptFlow)}`);
+  assert(promptFlow.favoriteUiRemoved, `收藏功能未完整移除：${JSON.stringify(promptFlow)}`);
+  assert(promptFlow.coverOptions === JSON.stringify([['image', '包含图片的卡片'], ['none', '无图片的紧凑卡片']]), `封面选项不符合要求：${promptFlow.coverOptions}`);
+  assert(promptFlow.defaultCompact && promptFlow.createdCompact && promptFlow.compactUpgradedToFeatured, `卡片形态切换失败：${JSON.stringify(promptFlow)}`);
+  assert(promptFlow.imageCopyOnlyOnFeatured && promptFlow.imageCopied && promptFlow.imageCopyDidNotOpenDrawer, `图片快速复制失败：${JSON.stringify(promptFlow)}`);
+  assert(promptFlow.fixedCardSizes && promptFlow.textQuotas, `卡片尺寸或文字定额失败：${JSON.stringify(promptFlow)}`);
   assert(promptFlow.spaceCreated, `空间新增流程失败：${JSON.stringify(promptFlow)}`);
   console.log('QA checkpoint: prompt CRUD');
 
@@ -109,13 +137,25 @@ async function runInteractionQA(win) {
     const pause = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
     const waitUntil = async (predicate) => { for (let i = 0; i < 20; i += 1) { if (predicate()) return true; await pause(40); } return false; };
     const hasTitle = (root, title) => [...document.querySelectorAll(root + ' .task-card h3')].some((node) => node.textContent === title);
+    const isHidden = (selector) => document.querySelector(selector).hidden && getComputedStyle(document.querySelector(selector)).display === 'none';
+    const isVisible = (selector) => !document.querySelector(selector).hidden && getComputedStyle(document.querySelector(selector)).display !== 'none';
     document.querySelector('[data-page="schedule"]').click();
     const columnLabels = [...document.querySelectorAll('.kanban-column > header strong')].map((node) => node.textContent.trim());
     const noCompletedColumn = !document.querySelector('[data-status="done"]');
     const rangeMirrored = document.querySelectorAll('[data-task-id="task-review"]').length === 2;
+    const noTaskKindSwitcher = !document.querySelector('.task-kind-switch') && !document.querySelector('[data-task-kind]');
+    const normalPriorityDeferred = !hasTitle('[data-task-list="today"]', '整理本周灵感');
+    for (let i = 0; i < 5; i += 1) document.querySelector('[data-date-step="1"]').click();
+    const normalPriorityFinalWeek = hasTitle('[data-task-list="today"]', '整理本周灵感');
+    document.querySelector('[data-date-today]').click();
 
     document.querySelector('[data-open="task-create"]').click();
-    const rangeTaskOpened = document.querySelector('#task-dialog')?.open && document.querySelector('#task-kind').value === 'range';
+    const rangeTaskOpened = document.querySelector('#task-dialog')?.open
+      && document.querySelector('#task-kind').value === 'range'
+      && isVisible('#task-range-field')
+      && isHidden('#task-date-field')
+      && isHidden('#task-time-field')
+      && document.querySelector('#task-reminder').checked === false;
     document.querySelector('#task-title').value = '三期课程连续准备';
     document.querySelector('#task-range-trigger').click();
     document.querySelector('[data-range-day="24"]').click();
@@ -128,12 +168,29 @@ async function runInteractionQA(win) {
     const rangeInToday = hasTitle('[data-task-list="today"]', '三期课程连续准备');
 
     document.querySelector('[data-quick-task="today"]').click();
-    const todayTaskOpened = document.querySelector('#task-kind').value === 'today' && document.querySelector('#task-date-field').hidden === false;
+    const todayTaskOpened = document.querySelector('#task-kind').value === 'today'
+      && isHidden('#task-range-field')
+      && isVisible('#task-date-field')
+      && isVisible('#task-time-field')
+      && document.querySelector('#task-time-enabled').checked === false
+      && document.querySelector('#task-time').disabled === true
+      && document.querySelector('#task-reminder').checked === false;
     document.querySelector('#task-title').value = '临时回复评审意见';
+    document.querySelector('#task-time-enabled').click();
+    const optionalTimeEnabled = document.querySelector('#task-time-enabled').checked === true
+      && document.querySelector('#task-time').disabled === false
+      && document.querySelector('#task-time-field').classList.contains('enabled');
     document.querySelector('#task-time').value = '15:20';
     document.querySelector('#task-save').click();
     await pause();
     const todayOnly = hasTitle('[data-task-list="today"]', '临时回复评审意见') && !hasTitle('[data-task-list="range"]', '临时回复评审意见');
+    const createdTodayCard = [...document.querySelectorAll('[data-task-list="today"] .task-card')].find((node) => node.querySelector('h3')?.textContent === '临时回复评审意见');
+    const todayTimeSaved = createdTodayCard?.querySelector('footer')?.textContent.includes('15:20');
+    createdTodayCard.click();
+    const editTimeRestored = document.querySelector('#task-time-enabled').checked
+      && document.querySelector('#task-time').disabled === false
+      && document.querySelector('#task-time').value === '15:20';
+    document.querySelector('#task-dialog').close();
     const originBadges = Boolean(document.querySelector('[data-task-list="today"] .task-origin.range') && document.querySelector('[data-task-list="today"] .task-origin.today'));
 
     for (let i = 0; i < 3; i += 1) document.querySelector('[data-date-step="1"]').click();
@@ -149,9 +206,7 @@ async function runInteractionQA(win) {
     const completedRemoved = !hasTitle('[data-task-list="today"]', '临时回复评审意见');
 
     document.querySelector('[data-schedule-view="calendar"]').click();
-    const calendarRange = Boolean(document.querySelector('.event.range.range-start') && document.querySelector('.event.range.range-mid') && document.querySelector('.event.range.range-end'));
-    const reviewSegments = [...document.querySelectorAll('[data-range-task="task-review"]')];
-    const stableRangeLane = reviewSegments.length === 4 && new Set(reviewSegments.map((node) => `${node.dataset.calendarWeek}:${node.dataset.rangeLane}`)).size === 1;
+    const calendarHasNoTaskHints = document.querySelectorAll('#calendar-grid .event').length === 0;
     document.querySelector('.calendar-day[data-date="2026-08-27"]').click();
     document.querySelector('[data-schedule-view="board"]').click();
     const calendarBoardSynced = document.querySelector('[data-date-today]').textContent.includes('8月27日') && hasTitle('[data-task-list="today"]', '准备课程演示素材') && !hasTitle('[data-task-list="today"]', '临时同步视觉细节');
@@ -187,7 +242,7 @@ async function runInteractionQA(win) {
     const keptReminder = [...document.querySelectorAll('#reminder-list article')].find((node) => node.querySelector('h3')?.textContent === '三期方案评审');
     const reminderKeptAndUnlinked = Boolean(keptReminder) && keptReminder.querySelector('.linked-badge') === null;
 
-    return { columnLabels: JSON.stringify(columnLabels), noCompletedColumn, rangeMirrored, rangeTaskOpened, rangeSelected, hotelRangeStyle, rangeInTodo, rangeInToday, todayTaskOpened, todayOnly, originBadges, rangeStillInTodayAtEnd, steppedDateLabel, rangeLeavesTodayAfterEnd, completedRemoved, calendarRange, stableRangeLane, calendarBoardSynced, dayOpened, daySources, reminderOpened, reminderDateVisible, reminderCreated, reminderToggled, deleteChoices, reminderKeptAndUnlinked };
+    return { columnLabels: JSON.stringify(columnLabels), noCompletedColumn, rangeMirrored, noTaskKindSwitcher, normalPriorityDeferred, normalPriorityFinalWeek, rangeTaskOpened, rangeSelected, hotelRangeStyle, rangeInTodo, rangeInToday, todayTaskOpened, optionalTimeEnabled, todayOnly, todayTimeSaved, editTimeRestored, originBadges, rangeStillInTodayAtEnd, steppedDateLabel, rangeLeavesTodayAfterEnd, completedRemoved, calendarHasNoTaskHints, calendarBoardSynced, dayOpened, daySources, reminderOpened, reminderDateVisible, reminderCreated, reminderToggled, deleteChoices, reminderKeptAndUnlinked };
   })()`);
   assert(scheduleFlow.columnLabels === JSON.stringify(['长期待办', '今日事项']), `看板栏目不符合新方案：${scheduleFlow.columnLabels}`);
   assert(Object.values(scheduleFlow).every(Boolean), `日程完整流程失败：${JSON.stringify(scheduleFlow)}`);
