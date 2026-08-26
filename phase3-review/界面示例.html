@@ -3,129 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI 桌宠 · 三期界面评审原型</title>
+  <title>流萤工作台 · 三期高保真原型</title>
   <link rel="stylesheet" href="界面示例.css">
 </head>
 <body>
-  <div class="prototype-note">三期评审原型 · 交互与数据均为演示</div>
-  <main class="app-window" aria-label="AI 桌宠管理工具三期原型">
+  <div class="prototype-note"><span></span>三期高保真评审原型 · 数据仅在当前页面有效，刷新后重置</div>
+
+  <main class="app-window" aria-label="流萤工作台三期窗口原型">
     <header class="titlebar">
       <div class="app-identity">
-        <img src="../../assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt="" class="app-mark">
-        <div><strong>流萤工作台</strong><span>AI 桌宠管理工具</span></div>
+        <img src="../assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt="" class="app-mark">
+        <div><strong>流萤工作台</strong><span>AI 创作与日程中心</span></div>
       </div>
+      <div class="titlebar-status"><i></i>本地演示模式</div>
       <div class="window-actions" aria-label="窗口控制按钮">
-        <button type="button" title="最小化">—</button><button type="button" title="最大化">□</button><button type="button" title="关闭">×</button>
+        <button type="button" data-window-action="minimize" aria-label="最小化"></button>
+        <button type="button" data-window-action="maximize" aria-label="最大化"></button>
+        <button type="button" data-window-action="close" aria-label="关闭"></button>
       </div>
     </header>
 
     <nav class="top-nav" aria-label="主导航">
-      <button type="button" class="nav-item active" data-page="prompts"><span class="nav-icon">✦</span>提示词管理工具</button>
-      <button type="button" class="nav-item" data-page="schedule"><span class="nav-icon">◫</span>日程管理</button>
-      <button type="button" class="nav-item" data-page="settings"><span class="nav-icon">⚙</span>设置</button>
-      <div class="nav-meta"><span class="status-dot"></span>桌宠正在运行</div>
+      <button type="button" class="nav-item prompts active" data-page="prompts">提示词管理工具</button>
+      <button type="button" class="nav-item schedule" data-page="schedule">日程管理</button>
+      <button type="button" class="nav-item settings" data-page="settings">设置</button>
+      <div class="nav-meta"><span class="status-dot"></span>工作台已就绪</div>
     </nav>
 
     <section class="page active" id="page-prompts">
       <aside class="space-sidebar">
         <div class="sidebar-heading">
           <div><span class="eyebrow">WORKSPACES</span><h2>项目空间</h2></div>
-          <button type="button" class="icon-button" data-action="toast" data-message="新建空间表单将在这里打开" title="新建空间">＋</button>
+          <button type="button" class="icon-button" data-open="space-create" title="新建空间" aria-label="新建空间">＋</button>
         </div>
-        <div class="space-list">
-          <button type="button" class="space-item active" data-space="常用命令"><span class="space-glyph mint">⌘</span><span>常用命令</span><b>6</b></button>
-          <button type="button" class="space-item" data-space="海报制作"><span class="space-glyph gold">▧</span><span>海报制作</span><b>8</b></button>
-          <button type="button" class="space-item" data-space="AI 绘图"><span class="space-glyph pink">◈</span><span>AI 绘图</span><b>12</b></button>
-          <button type="button" class="space-item" data-space="文稿写作"><span class="space-glyph cyan">✎</span><span>文稿写作</span><b>5</b></button>
-        </div>
+        <div class="space-list" id="space-list"></div>
         <div class="sidebar-tip">
-          <img src="../../assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="">
-          <p>拖动空间即可排序。旧命令会自动迁入“常用命令”。</p>
+          <img src="../assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="">
+          <div><strong>一级空间</strong><p>将命令与提示词归入不同创作场景。</p></div>
         </div>
-        <button type="button" class="sidebar-action" data-action="toast" data-message="已进入空间管理模式">管理项目空间</button>
+        <button type="button" class="sidebar-action" data-open="space-manage">管理项目空间</button>
       </aside>
 
       <div class="workspace">
         <header class="content-header">
           <div>
-            <div class="breadcrumb">提示词管理工具 <span>/</span> <b id="current-space">常用命令</b></div>
-            <h1 id="workspace-title">常用命令</h1>
-            <p>整理高频命令与提示词，查看详情或一键复制。</p>
+            <div class="breadcrumb">提示词管理工具 <span>/</span> <b id="current-space">全部内容</b></div>
+            <h1 id="workspace-title">全部内容</h1>
+            <p id="workspace-description">集中整理命令和提示词，快速查找、编辑与复制。</p>
           </div>
-          <button type="button" class="primary-button" data-action="toast" data-message="新建内容抽屉将在这里打开"><span>＋</span> 新建内容</button>
+          <button type="button" class="primary-button" data-open="entry-create"><span>＋</span>新建内容</button>
         </header>
 
         <div class="toolbar">
-          <label class="search-box"><span>⌕</span><input id="prompt-search" type="search" placeholder="搜索标题或正文"><kbd>Ctrl K</kbd></label>
-          <div class="filter-group">
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="prompt-search" type="search" placeholder="搜索标题或正文"><kbd>Ctrl K</kbd></label>
+          <div class="filter-group" aria-label="内容类型筛选">
             <button type="button" class="filter-chip active" data-filter="all">全部</button>
             <button type="button" class="filter-chip" data-filter="prompt">提示词</button>
             <button type="button" class="filter-chip" data-filter="command">命令</button>
           </div>
-          <button type="button" class="select-button" data-action="toast" data-message="排序：置顶优先，其次最近更新">置顶优先⌄</button>
+          <label class="sort-control"><span>排序</span><select id="entry-sort"><option value="pinned">置顶优先</option><option value="updated">最近更新</option><option value="title">标题 A–Z</option></select></label>
         </div>
 
-        <div class="result-line"><span><b id="result-count">6</b> 条内容</span><span>卡片会随窗口宽度自动排列</span></div>
-
-        <div class="card-grid" id="prompt-grid">
-          <article class="prompt-card featured" data-type="prompt" data-title="产品海报视觉提示词" tabindex="0">
-            <div class="cover cover-poster"><span class="pin">置顶</span><div class="cover-copy"><small>NEON POSTER</small><strong>夏夜萤光</strong><span>Visual Study 03</span></div></div>
-            <div class="card-body">
-              <div class="card-meta"><span class="type prompt">提示词</span><span>海报制作</span><button class="star active" type="button">★</button></div>
-              <h3>产品海报视觉提示词</h3>
-              <p>为一款轻盈、未来感的桌面应用制作竖版海报。使用深蓝夜幕、青色晶体光与少量金色点缀……</p>
-              <div class="card-footer"><span>今天 14:20 更新</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
-
-          <article class="prompt-card featured" data-type="prompt" data-title="角色立绘 · 流萤少女" tabindex="0">
-            <div class="cover cover-character"><img src="../../assets/chat-avatar.png" alt="角色例图"><span class="image-count">2 张例图</span></div>
-            <div class="card-body">
-              <div class="card-meta"><span class="type prompt">提示词</span><span>AI 绘图</span><button class="star" type="button">☆</button></div>
-              <h3>角色立绘 · 流萤少女</h3>
-              <p>anime character concept, pearl white hair, cyan crystal accessories, soft rim light, transparent background…</p>
-              <div class="card-footer"><span>昨天更新</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
-
-          <article class="prompt-card compact" data-type="command" data-title="Git 提交并推送" tabindex="0">
-            <div class="card-body">
-              <div class="card-meta"><span class="type command">命令</span><span class="pin-text">◆ 置顶</span><button class="star active" type="button">★</button></div>
-              <h3>Git 提交并推送</h3>
-              <pre>git add .
-git commit -m "update"
-git push</pre>
-              <div class="card-footer"><span>常用命令</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
-
-          <article class="prompt-card compact" data-type="command" data-title="启动本地项目" tabindex="0">
-            <div class="card-body">
-              <div class="card-meta"><span class="type command">命令</span><span>2 行</span><button class="star" type="button">☆</button></div>
-              <h3>启动本地项目</h3>
-              <pre>npm install
-npm run dev</pre>
-              <div class="card-footer"><span>3 天前更新</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
-
-          <article class="prompt-card compact" data-type="prompt" data-title="周报提炼助手" tabindex="0">
-            <div class="card-body">
-              <div class="card-meta"><span class="type prompt">提示词</span><span>文稿写作</span><button class="star" type="button">☆</button></div>
-              <h3>周报提炼助手</h3>
-              <p>请将以下工作记录整理为结构清晰的周报，按“本周完成、关键结果、风险与下周计划”输出……</p>
-              <div class="card-footer"><span>8 月 22 日更新</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
-
-          <article class="prompt-card compact" data-type="command" data-title="检查 JavaScript 语法" tabindex="0">
-            <div class="card-body">
-              <div class="card-meta"><span class="type command">命令</span><span>1 行</span><button class="star" type="button">☆</button></div>
-              <h3>检查 JavaScript 语法</h3>
-              <pre>node --check renderer.js</pre>
-              <div class="card-footer"><span>8 月 20 日更新</span><button type="button" class="copy-button">复制</button></div>
-            </div>
-          </article>
+        <div class="result-line"><span><b id="result-count">0</b> 条内容</span><span id="result-hint">有封面显示大卡片，无封面显示紧凑卡片</span></div>
+        <div class="card-grid" id="prompt-grid"></div>
+        <div class="empty-state" id="entry-empty" hidden>
+          <span>⌕</span><h3>没有找到匹配内容</h3><p>尝试更换关键词或筛选条件，也可以新建一条内容。</p><button type="button" class="ghost-button" data-clear-filter>清除筛选</button>
         </div>
       </div>
     </section>
@@ -133,69 +75,55 @@ npm run dev</pre>
     <section class="page" id="page-schedule">
       <div class="full-workspace">
         <header class="content-header schedule-header">
-          <div><span class="eyebrow">DAILY RHYTHM</span><h1>日程管理</h1><p>2026 年 8 月 25 日 · 今天还有 4 项任务</p></div>
-          <button type="button" class="primary-button" data-action="toast" data-message="新建任务表单将在这里打开"><span>＋</span> 新建任务</button>
+          <div><span class="eyebrow">DAILY RHYTHM</span><h1>日程管理</h1><p id="schedule-summary">2026 年 8 月 25 日 · 今天还有 4 项任务</p></div>
+          <button type="button" class="primary-button" data-open="task-create"><span>＋</span>新建长期待办</button>
         </header>
 
         <div class="schedule-toolbar">
-          <div class="date-switcher"><button type="button">‹</button><button type="button" class="today-button">今天</button><button type="button">›</button></div>
+          <div class="date-switcher"><button type="button" data-date-step="-1" aria-label="前一天">‹</button><button type="button" class="today-button" data-date-today>今天 · 8月25日</button><button type="button" data-date-step="1" aria-label="后一天">›</button></div>
           <div class="schedule-view-tabs">
             <button type="button" class="active" data-schedule-view="board">今日看板</button>
-            <button type="button" data-schedule-view="calendar">打开日程表</button>
+            <button type="button" data-schedule-view="calendar">日程表</button>
             <button type="button" data-schedule-view="reminders">提醒管理</button>
           </div>
-          <label class="compact-search"><span>⌕</span><input type="search" placeholder="搜索任务"></label>
+          <label class="compact-search"><span>⌕</span><input id="task-search" type="search" placeholder="搜索任务"></label>
         </div>
 
         <div class="schedule-view active" id="schedule-board">
           <div class="kanban-board">
-            <section class="kanban-column todo-column" data-status="todo">
-              <header><div><span class="column-dot"></span><strong>待办</strong><b>3</b></div><button type="button">＋</button></header>
-              <div class="task-list">
-                <article class="task-card priority-high" draggable="true"><div class="task-top"><span>高优先级</span><button>•••</button></div><h3>确认三期界面方案</h3><p>整理评审意见并冻结主要交互。</p><footer><span>◷ 10:30</span><span>◉ 已提醒</span></footer></article>
-                <article class="task-card" draggable="true"><div class="task-top"><span>普通</span><button>•••</button></div><h3>准备课程演示素材</h3><p>补充提示词管理的示例数据。</p><footer><span>◷ 14:00</span><span>附件 3</span></footer></article>
-                <article class="task-card priority-low" draggable="true"><div class="task-top"><span>低优先级</span><button>•••</button></div><h3>整理本周灵感</h3><p>把散落提示词归档到对应空间。</p><footer><span>全天</span><span>无提醒</span></footer></article>
-              </div>
+            <section class="kanban-column todo-column" data-status="range">
+              <header><div><span class="column-dot"></span><strong>长期待办</strong><b data-task-count="range">0</b></div><button type="button" data-quick-task="range" aria-label="新增长期待办">＋</button></header>
+              <p class="column-description">持续性事务 · 按日期区间自动进入今日事项</p>
+              <div class="task-list" data-task-list="range"></div>
             </section>
-            <section class="kanban-column doing-column" data-status="doing">
-              <header><div><span class="column-dot"></span><strong>进行中</strong><b>1</b></div><button type="button">＋</button></header>
-              <div class="task-list">
-                <article class="task-card priority-high" draggable="true"><div class="task-top"><span>高优先级</span><button>•••</button></div><h3>制作海报提示词模板</h3><p>补充光影、构图和负面提示词字段。</p><div class="progress"><i style="width:68%"></i></div><footer><span>◷ 16:00</span><span>68%</span></footer></article>
-              </div>
-            </section>
-            <section class="kanban-column done-column" data-status="done">
-              <header><div><span class="column-dot"></span><strong>已完成</strong><b>2</b></div><button type="button">＋</button></header>
-              <div class="task-list">
-                <article class="task-card completed" draggable="true"><div class="task-top"><span>已完成</span><button>•••</button></div><h3>备份二期项目数据</h3><p>命令、提醒和大模型设置已备份。</p><footer><span>✓ 09:12</span><span>今日</span></footer></article>
-                <article class="task-card completed" draggable="true"><div class="task-top"><span>已完成</span><button>•••</button></div><h3>检查动画资源</h3><p>确认 9 组桌宠动作可正常播放。</p><footer><span>✓ 08:45</span><span>今日</span></footer></article>
-              </div>
+            <section class="kanban-column doing-column" data-status="today">
+              <header><div><span class="column-dot"></span><strong>今日事项</strong><b data-task-count="today">0</b></div><button type="button" data-quick-task="today" aria-label="新增当日事项">＋</button></header>
+              <p class="column-description">区间自动映射 + 当日偶发事项</p>
+              <div class="task-list" data-task-list="today"></div>
             </section>
           </div>
         </div>
 
         <div class="schedule-view" id="schedule-calendar">
-          <div class="calendar-shell">
-            <header class="calendar-header"><button type="button">‹</button><h2>2026 年 8 月</h2><button type="button">›</button><button type="button" class="ghost-button" data-schedule-view="board">返回今日看板</button></header>
-            <div class="weekdays"><span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span></div>
-            <div class="calendar-grid">
-              <button class="muted"><b>27</b></button><button class="muted"><b>28</b></button><button class="muted"><b>29</b></button><button class="muted"><b>30</b></button><button class="muted"><b>31</b></button><button><b>1</b></button><button><b>2</b></button>
-              <button><b>3</b></button><button><b>4</b><i class="event task">课程素材</i></button><button><b>5</b></button><button><b>6</b><i class="event reminder">喝水提醒</i></button><button><b>7</b></button><button><b>8</b></button><button><b>9</b></button>
-              <button><b>10</b></button><button><b>11</b></button><button><b>12</b><i class="event task">版本评审</i></button><button><b>13</b></button><button><b>14</b></button><button><b>15</b></button><button><b>16</b></button>
-              <button><b>17</b></button><button><b>18</b></button><button><b>19</b></button><button><b>20</b><i class="event reminder">14:30 开会</i></button><button><b>21</b></button><button><b>22</b></button><button><b>23</b></button>
-              <button><b>24</b></button><button class="today"><b>25</b><i class="event task">4 项任务</i><i class="event reminder">10:30 提醒</i></button><button><b>26</b><i class="event task">课程录制</i></button><button><b>27</b></button><button><b>28</b></button><button><b>29</b></button><button><b>30</b></button>
-              <button><b>31</b></button><button class="muted"><b>1</b></button><button class="muted"><b>2</b></button><button class="muted"><b>3</b></button><button class="muted"><b>4</b></button><button class="muted"><b>5</b></button><button class="muted"><b>6</b></button>
+          <div class="calendar-layout">
+            <div class="calendar-shell">
+              <header class="calendar-header"><button type="button" data-month-step="-1">‹</button><h2 id="calendar-title">2026 年 8 月</h2><button type="button" data-month-step="1">›</button><button type="button" class="ghost-button" data-schedule-view="board">返回今日看板</button></header>
+              <div class="weekdays"><span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span></div>
+              <div class="calendar-grid" id="calendar-grid"></div>
             </div>
+            <aside class="day-panel" id="day-panel">
+              <header><div><span>SELECTED DAY</span><h3 id="day-panel-title">8 月 25 日 · 周二</h3></div><button type="button" id="day-panel-close">×</button></header>
+              <div id="day-panel-list"></div>
+              <button type="button" class="primary-button wide-button" data-quick-task="today">＋ 在当天新建偶发事项</button>
+            </aside>
           </div>
         </div>
 
         <div class="schedule-view" id="schedule-reminders">
           <div class="reminder-shell">
-            <header><div><h2>提醒管理</h2><p>周期与使用时长提醒不会重复铺入月历。</p></div><div><button type="button" class="ghost-button" data-schedule-view="board">返回今日看板</button><button type="button" class="primary-button" data-action="toast" data-message="新增提醒表单将在这里打开">＋ 新增提醒</button></div></header>
-            <div class="reminder-list">
-              <article><span class="reminder-icon cyan">◷</span><div><span class="type command">周期提醒</span><h3>每 50 分钟休息眼睛</h3><p>下次提醒：今天 15:20</p></div><label class="switch"><input type="checkbox" checked><i></i></label><button>•••</button></article>
-              <article><span class="reminder-icon gold">⌁</span><div><span class="type prompt">使用时长</span><h3>已使用电脑 1 小时，起来活动</h3><p>从应用启动时累计 · 60 分钟</p></div><label class="switch"><input type="checkbox" checked><i></i></label><button>•••</button></article>
-              <article><span class="reminder-icon pink">◉</span><div><span class="type absolute">定点提醒</span><h3>三期方案评审</h3><p>今天 16:30 · 显示在月历</p></div><label class="switch"><input type="checkbox" checked><i></i></label><button>•••</button></article>
-            </div>
+            <header><div><span class="eyebrow">REMINDER CENTER</span><h2>提醒管理</h2><p>周期与使用时长提醒不会重复显示在月历。</p></div><div><button type="button" class="ghost-button" data-schedule-view="board">返回看板</button><button type="button" class="primary-button" data-open="reminder-create">＋ 新增提醒</button></div></header>
+            <div class="reminder-stats"><span><b id="reminder-enabled-count">0</b> 条已启用</span><span>定点提醒会同步显示到日程表</span></div>
+            <div class="reminder-list" id="reminder-list"></div>
           </div>
         </div>
       </div>
@@ -204,49 +132,135 @@ npm run dev</pre>
     <section class="page" id="page-settings">
       <div class="settings-workspace">
         <header class="content-header settings-heading">
-          <div><span class="eyebrow">PREFERENCES</span><h1>设置</h1><p>管理桌宠行为、提醒体验与大模型连接。</p></div>
-          <span class="save-state">✓ 所有更改已保存</span>
+          <div><span class="eyebrow">PREFERENCES</span><h1>设置</h1><p>所有设置集中在当前页面，不使用子栏目。</p></div>
+          <span class="save-state" id="save-state"><i></i>所有更改已保存</span>
         </header>
 
         <div class="settings-grid">
           <section class="settings-card general-settings">
-            <header><span class="settings-icon cyan">⚙</span><div><h2>通用设置</h2><p>修改后即时生效</p></div></header>
-            <div class="setting-row"><div><strong>始终置顶</strong><p>让桌宠和工作台保持在其他窗口上方</p></div><label class="switch"><input type="checkbox" checked><i></i></label></div>
-            <div class="setting-row"><div><strong>开机时启动桌宠</strong><p>登录 Windows 后自动运行</p></div><label class="switch"><input type="checkbox"><i></i></label></div>
-            <div class="setting-row"><div><strong>提醒音量</strong><p>提醒气泡与语音提示的播放音量</p></div><div class="range-control"><input type="range" value="72"><b>72%</b></div></div>
-            <div class="setting-row"><div><strong>减少动态效果</strong><p>停止环境粒子和非必要过渡动画</p></div><label class="switch"><input type="checkbox"><i></i></label></div>
-            <div class="setting-row storage-row"><div><strong>数据存储位置</strong><p>%APPDATA%\AI桌宠</p></div><button type="button" class="ghost-button" data-action="toast" data-message="正式版本将打开数据目录">打开目录</button></div>
+            <header><span class="settings-icon cyan">⚙</span><div><h2>通用设置</h2><p>演示状态仅在当前页面生效</p></div></header>
+            <div class="setting-row"><div><strong>工作台始终置顶</strong><p>让此工作台保持在其他窗口上方</p></div><label class="switch"><input type="checkbox" data-setting="alwaysOnTop" checked><i></i></label></div>
+            <div class="setting-row"><div><strong>开机时启动应用</strong><p>登录 Windows 后自动运行</p></div><label class="switch"><input type="checkbox" data-setting="launchAtLogin"><i></i></label></div>
+            <div class="setting-row"><div><strong>提醒音量</strong><p>控制日程提醒的提示音量</p></div><div class="range-control"><input id="volume-input" type="range" min="0" max="100" value="72"><b id="volume-value">72%</b></div></div>
+            <div class="setting-row"><div><strong>减少动态效果</strong><p>停止环境粒子和非必要过渡</p></div><label class="switch"><input type="checkbox" data-setting="reducedMotion"><i></i></label></div>
+            <div class="setting-row storage-row"><div><strong>数据存储位置</strong><p>%APPDATA%\FireflyWorkspace</p></div><button type="button" class="ghost-button" data-demo-action="open-directory">打开目录</button></div>
           </section>
 
           <section class="settings-card model-settings">
-            <header><span class="settings-icon gold">✦</span><div><h2>大模型配置</h2><p><span class="status-dot"></span>已连接 · DeepSeek Chat</p></div></header>
+            <header><span class="settings-icon gold">✦</span><div><h2>大模型配置</h2><p><span class="status-dot"></span>配置完整 · 等待正式接入</p></div></header>
             <div class="form-grid">
-              <label><span>API Key</span><div class="secure-input"><input type="password" value="configured-key" readonly><b>已配置</b></div><small>真实 Key 不会回显到页面</small></label>
-              <label><span>接口地址</span><input type="text" value="https://api.deepseek.com"></label>
-              <label><span>模型</span><select><option>deepseek-chat</option><option>deepseek-reasoner</option></select></label>
-              <label class="wide"><span>桌宠人设</span><textarea>你是温柔、简洁的桌面陪伴助手。回答优先清晰可执行，并保持自然亲切的语气。</textarea><small>用于每轮对话的系统提示词</small></label>
+              <label><span>API Key</span><div class="secure-input"><input id="model-key" type="password" value="configured" readonly><b>已配置</b></div><small>高保真原型不会读取或保存真实密钥</small></label>
+              <label><span>模型</span><select id="model-name"><option>deepseek-chat</option><option>deepseek-reasoner</option></select></label>
+              <label class="wide"><span>接口地址</span><input id="model-endpoint" value="https://api.deepseek.com" spellcheck="false"><small class="field-message" id="endpoint-message">使用兼容 OpenAI 的 API 地址</small></label>
+              <label class="wide"><span>助手人设</span><textarea id="model-persona">你是流萤，一位温柔、简洁、善于整理创作思路的桌面助手。</textarea></label>
             </div>
-            <footer><button type="button" class="danger-text" data-action="toast" data-message="原型不会清除真实对话历史">清空对话历史</button><button type="button" class="primary-button" data-action="toast" data-message="大模型配置已保存">保存大模型配置</button></footer>
+            <footer><button type="button" class="danger-text" data-confirm-action="clear-history">清空对话历史</button><button type="button" class="primary-button" id="model-save">保存大模型配置</button></footer>
           </section>
         </div>
 
-        <footer class="app-footer"><div><img src="../../assets/icon.png" alt=""><span><b>AI 桌宠</b><small>版本 3.0.0 · 萤光织界</small></span></div><button type="button" class="danger-button" data-action="toast" data-message="评审原型不会退出桌宠">退出宠物</button></footer>
+        <footer class="app-footer">
+          <div><img src="../assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt=""><span><b>流萤工作台</b><small>版本 3.0.0 · 高保真评审构建</small></span></div>
+          <div class="footer-actions"><button type="button" class="ghost-button" data-reset-demo>恢复示例数据</button><button type="button" class="danger-button" data-confirm-action="exit-app">退出应用</button></div>
+        </footer>
       </div>
     </section>
 
     <div class="drawer-backdrop" id="drawer-backdrop"></div>
-    <aside class="detail-drawer" id="detail-drawer" aria-hidden="true">
-      <header><div><span class="type prompt" id="drawer-type">提示词</span><span id="drawer-space">海报制作</span></div><button type="button" id="drawer-close">×</button></header>
-      <div class="drawer-cover cover-poster"><div class="cover-copy"><small>NEON POSTER</small><strong>夏夜萤光</strong></div><button type="button" class="cover-action">更换封面</button></div>
-      <div class="drawer-content">
-        <label><span>标题</span><input id="drawer-title" value="产品海报视觉提示词"></label>
-        <label><span>正文</span><textarea id="drawer-body">为一款轻盈、未来感的桌面应用制作竖版海报。使用深蓝夜幕、青色晶体光与少量金色点缀；主体留出呼吸感，边缘加入羽翼状装饰和低密度萤光粒子。</textarea></label>
-        <div class="drawer-options"><label><input type="checkbox" checked> 置顶</label><label><input type="checkbox" checked> 收藏</label><button type="button" class="select-button">移动到…⌄</button></div>
-      </div>
-      <footer><button type="button" class="danger-text" data-action="toast" data-message="删除操作将在正式版二次确认">删除</button><div><button type="button" class="ghost-button copy-button">复制全文</button><button type="button" class="primary-button" data-action="toast" data-message="更改已保存">保存更改</button></div></footer>
+    <aside class="entry-drawer" id="entry-drawer" aria-hidden="true">
+      <header><div><span class="drawer-mode" id="entry-mode-label">编辑内容</span><b id="entry-drawer-type">提示词</b></div><button type="button" id="entry-drawer-close" aria-label="关闭">×</button></header>
+      <form id="entry-form">
+        <div class="drawer-cover" id="entry-cover-preview">
+          <div><small>FIREFLY COLLECTION</small><strong>灵感封面</strong><span>可选 · 无封面时显示紧凑卡片</span></div>
+          <label class="cover-upload"><input type="file" id="entry-cover-file" accept="image/png,image/jpeg,image/webp">选择本地图片</label>
+        </div>
+        <div class="drawer-content">
+          <input type="hidden" id="entry-id">
+          <div class="field-grid two">
+            <label><span>内容类型</span><select id="entry-type"><option value="prompt">提示词</option><option value="command">常用命令</option></select></label>
+            <label><span>项目空间</span><select id="entry-space"></select></label>
+          </div>
+          <label class="field"><span>标题 <b>*</b></span><input id="entry-title" maxlength="60" placeholder="输入便于识别的标题"><small class="field-error" data-error-for="entry-title"></small></label>
+          <label class="field"><span>正文 <b>*</b></span><textarea id="entry-content" maxlength="2000" placeholder="输入提示词或多行命令"></textarea><small class="field-meta"><span class="field-error" data-error-for="entry-content"></span><i id="entry-char-count">0 / 2000</i></small></label>
+          <label class="field"><span>卡片封面</span><select id="entry-cover"><option value="none">无封面 · 紧凑卡片</option><option value="poster">萤光海报</option><option value="character">角色例图</option><option value="custom">本次选择的图片</option></select></label>
+          <div class="drawer-options"><label><input type="checkbox" id="entry-pinned">置顶</label><label><input type="checkbox" id="entry-favorite">收藏</label><span>命令仅可复制，不会执行</span></div>
+        </div>
+        <footer><button type="button" class="danger-text" id="entry-delete">删除</button><div><button type="button" class="ghost-button" id="entry-copy">复制全文</button><button type="submit" class="primary-button" id="entry-save">保存内容</button></div></footer>
+      </form>
     </aside>
 
-    <div class="toast" id="toast"><span>✓</span><b>已复制到剪贴板</b></div>
+    <dialog class="modal" id="space-dialog">
+      <form method="dialog" id="space-form">
+        <header><div><span class="modal-icon mint">▦</span><div><h2 id="space-dialog-title">新建项目空间</h2><p>空间仅支持一级分类</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+        <div class="modal-body">
+          <label class="field"><span>空间名称 <b>*</b></span><input id="space-name" maxlength="16" placeholder="例如：课程演示"><small class="field-error" data-error-for="space-name"></small></label>
+          <div class="space-manager" id="space-manager" hidden><div class="manager-title"><span>现有空间</span><small>选择编辑或删除</small></div><div id="space-manager-list"></div></div>
+        </div>
+        <footer><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button" id="space-save">保存空间</button></footer>
+      </form>
+    </dialog>
+
+    <dialog class="modal task-modal" id="task-dialog">
+      <form method="dialog" id="task-form">
+        <header><div><span class="modal-icon cyan">✓</span><div><h2 id="task-dialog-title">新建长期待办</h2><p id="task-dialog-subtitle">设置日期区间，期间每天自动出现在今日事项</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+        <div class="modal-body">
+          <input type="hidden" id="task-id">
+          <input type="hidden" id="task-kind" value="range">
+          <div class="task-kind-switch" aria-label="任务类型">
+            <button type="button" class="active" data-task-kind="range"><span>▰</span><div><strong>长期待办</strong><small>设置开始与结束日期</small></div></button>
+            <button type="button" data-task-kind="today"><span>◉</span><div><strong>当日事项</strong><small>当天临时发生的事务</small></div></button>
+          </div>
+          <label class="field"><span>任务标题 <b>*</b></span><input id="task-title" maxlength="60" placeholder="今天要完成什么？"><small class="field-error" data-error-for="task-title"></small></label>
+          <div class="task-range-field" id="task-range-field">
+            <span>项目日期区间</span>
+            <button type="button" class="range-trigger" id="task-range-trigger"><span class="range-point"><small>开始日期</small><b id="task-start-label">2026/08/24</b></span><i>→</i><span class="range-point"><small>结束日期</small><b id="task-end-label">2026/08/28</b></span><em>▣</em></button>
+            <input type="hidden" id="task-start-date" value="2026-08-24">
+            <input type="hidden" id="task-end-date" value="2026-08-28">
+            <div class="range-picker" id="range-picker" hidden>
+              <header><button type="button" data-range-month="-1">‹</button><strong id="range-picker-title">2026 年 8 月</strong><button type="button" data-range-month="1">›</button></header>
+              <div class="range-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+              <div class="range-picker-grid" id="range-picker-grid"></div>
+              <footer><span id="range-picker-hint">请选择开始日期</span><button type="button" id="range-clear">清除</button><button type="button" id="range-today">今天</button></footer>
+            </div>
+          </div>
+          <div class="field-grid two task-basic-grid">
+            <label id="task-date-field" hidden><span>事项日期</span><input id="task-date" type="date" value="2026-08-25"></label>
+            <label><span>时间</span><input id="task-time" type="time" value="10:30"></label>
+            <label><span>优先级</span><select id="task-priority"><option value="normal">普通</option><option value="high">高优先级</option><option value="low">低优先级</option></select></label>
+          </div>
+          <label class="field"><span>备注</span><textarea id="task-notes" placeholder="补充任务说明"></textarea></label>
+          <label class="check-row"><input type="checkbox" id="task-reminder"><span><strong>到点提醒</strong><small>创建关联定点提醒，并显示在月历</small></span></label>
+        </div>
+        <footer><button type="button" class="danger-text" id="task-delete">删除任务</button><div><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button" id="task-save">保存任务</button></div></footer>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="reminder-dialog">
+      <form method="dialog" id="reminder-form">
+        <header><div><span class="modal-icon gold">◷</span><div><h2 id="reminder-dialog-title">新增提醒</h2><p>管理定点、周期与使用时长提醒</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+        <div class="modal-body">
+          <input type="hidden" id="reminder-id">
+          <label class="field"><span>提醒内容 <b>*</b></span><input id="reminder-title" maxlength="80" placeholder="输入提醒内容"><small class="field-error" data-error-for="reminder-title"></small></label>
+          <div class="field-grid two">
+            <label><span>提醒类型</span><select id="reminder-type"><option value="absolute">定点提醒</option><option value="interval">周期提醒</option><option value="usage">使用时长</option></select></label>
+            <label id="reminder-date-field"><span>提醒日期</span><input id="reminder-date" type="date" value="2026-08-25"></label>
+            <label><span id="reminder-value-label">提醒时间</span><input id="reminder-value" type="time" value="16:30"></label>
+          </div>
+          <label class="check-row"><input type="checkbox" id="reminder-enabled" checked><span><strong>启用提醒</strong><small>关闭后保留配置但不触发</small></span></label>
+          <div class="prototype-boundary">原型只演示管理流程，不会触发系统声音或通知。</div>
+        </div>
+        <footer><button type="button" class="danger-text" id="reminder-delete">删除提醒</button><div><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button" id="reminder-save">保存提醒</button></div></footer>
+      </form>
+    </dialog>
+
+    <dialog class="modal confirm-modal" id="confirm-dialog">
+      <form method="dialog">
+        <header><div><span class="modal-icon pink">!</span><div><h2 id="confirm-title">确认操作</h2><p id="confirm-subtitle">请确认是否继续</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+        <div class="modal-body"><p id="confirm-message"></p><div id="confirm-extra"></div></div>
+        <footer><button value="cancel" class="ghost-button">取消</button><div id="confirm-actions"><button value="confirm" class="danger-button" id="confirm-primary">确认</button></div></footer>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span><b id="toast-message">操作完成</b></div>
   </main>
   <script src="界面示例.js"></script>
 </body>
