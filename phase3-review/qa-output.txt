@@ -1,0 +1,148 @@
+
+QA checkpoint: shell
+QA checkpoint: prompt CRUD
+QA checkpoint: space guard
+QA checkpoint: schedule flow
+Interaction QA: {
+  shell: {
+    nav: [ '提示词管理工具', '日程管理', '设置' ],
+    windowOnly: true,
+    initialEntries: 8,
+    resourceLoaded: true,
+    baseFont: 14
+  },
+  promptFlow: {
+    opened: true,
+    favoriteUiRemoved: true,
+    coverOptions: '[["image","包含图片的卡片"],["none","无图片的紧凑卡片"]]',
+    defaultCompact: true,
+    created: true,
+    createdCompact: true,
+    edited: true,
+    compactUpgradedToFeatured: true,
+    imageCopyOnlyOnFeatured: true,
+    fixedCardSizes: true,
+    textQuotas: true,
+    imageCopied: true,
+    imageCopyDidNotOpenDrawer: true,
+    deleted: true,
+    spaceCreated: true,
+    entries: 8
+  },
+  scheduleFlow: {
+    columnLabels: '["长期待办","今日事项"]',
+    noCompletedColumn: true,
+    rangeMirrored: true,
+    noTaskKindSwitcher: true,
+    normalPriorityDeferred: true,
+    normalPriorityFinalWeek: true,
+    rangeTaskOpened: true,
+    rangeSelected: true,
+    hotelRangeStyle: true,
+    rangeInTodo: true,
+    rangeInToday: true,
+    todayTaskOpened: true,
+    optionalTimeEnabled: true,
+    todayOnly: true,
+    todayTimeSaved: true,
+    editTimeRestored: true,
+    originBadges: true,
+    rangeStillInTodayAtEnd: true,
+    steppedDateLabel: true,
+    rangeLeavesTodayAfterEnd: true,
+    completedRemoved: true,
+    calendarHasNoTaskHints: true,
+    calendarBoardSynced: true,
+    dayOpened: true,
+    daySources: true,
+    reminderOpened: true,
+    reminderDateVisible: true,
+    reminderCreated: true,
+    reminderToggled: true,
+    deleteChoices: true,
+    reminderKeptAndUnlinked: true
+  },
+  settingsFlow: {
+    volume: '35%',
+    state: '大模型配置已保存',
+    noSubnav: true,
+    invalidBlocked: true
+  }
+}
+Visual QA 01-提示词管理.png: {
+  viewport: [ 1282, 822 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 782 ]
+}
+Visual QA 02-新建内容抽屉.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 03-内容详情编辑.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 04-长期待办与今日事项.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 05-待办日期区间选择.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: true,
+  app: [ 1240, 780 ]
+}
+Visual QA 05B-当日事项表单.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 06-日程表日期详情.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 07-提醒管理.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 08-新增定点提醒弹窗.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: true,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 09-设置.png: {
+  viewport: [ 1280, 820 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 1240, 780 ]
+}
+Visual QA 10-最小尺寸适配.png: {
+  viewport: [ 960, 640 ],
+  bodyOverflow: false,
+  reminderDialogOpen: false,
+  rangePickerOpen: false,
+  app: [ 936, 600 ]
+}

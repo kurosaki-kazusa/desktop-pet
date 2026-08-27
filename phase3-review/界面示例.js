@@ -485,6 +485,7 @@
   }
 
   function saveTask(event) {
+    if (event.submitter?.value === 'cancel') return; // 「取消」按钮与右上角 ×：直接关闭弹窗，不做校验
     event.preventDefault();
     const title = $('#task-title').value.trim();
     const kind = $('#task-kind').value;
