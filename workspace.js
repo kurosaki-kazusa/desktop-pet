@@ -1,6 +1,6 @@
 // workspace.js · 工作台渲染层
 // P3-M1：四项顶部导航路由 + 自定义标题栏窗口控制
-// P3-M2/M3：提示词管理工具 —— 项目空间 / 双形态卡片 / 详情抽屉 / 封面管理
+// P3-M2~M4：项目空间 / 提示词卡片与封面 / 记事本与自动保存
 // 安全约定与 renderer.js 一致：用户输入一律 createElement + textContent 渲染，禁止 innerHTML 拼接
 
 const $ = (sel) => document.querySelector(sel);
@@ -73,11 +73,15 @@ api.onWorkspaceWinState((d) => {
 const state = {
   spaces: [],
   entries: [],
+  notes: [],
   defaultSpaceId: '',
   spaceId: null, // null = 全部内容
   filter: 'all', // all | prompt | command
   sort: 'pinned', // pinned | updated | title
-  q: ''
+  q: '',
+  noteSpaceId: null, // null = 全部笔记
+  noteQ: '',
+  noteSort: 'updated'
 };
 
 async function reload() {
@@ -89,8 +93,10 @@ async function reload() {
 function applyData(data) {
   state.spaces = (data && data.spaces) || [];
   state.entries = (data && data.entries) || [];
+  state.notes = (data && data.notes) || [];
   state.defaultSpaceId = (data && data.defaultSpaceId) || '';
   if (state.spaceId && !state.spaces.some((s) => s.id === state.spaceId)) state.spaceId = null;
+  if (state.noteSpaceId && !state.spaces.some((s) => s.id === state.noteSpaceId)) state.noteSpaceId = null;
   render();
 }
 
@@ -108,11 +114,20 @@ function countIn(spaceId) {
   return state.entries.filter((e) => e && e.spaceId === spaceId).length;
 }
 
+function noteCountIn(spaceId) {
+  return state.notes.filter((note) => note && note.spaceId === spaceId).length;
+}
+
+function totalCountIn(spaceId) {
+  return countIn(spaceId) + noteCountIn(spaceId);
+}
+
 // ---------- P3-M2：渲染 ----------
 function render() {
   renderHeader();
   renderSpaces();
   renderCards();
+  renderNotes();
 }
 
 function renderHeader() {
@@ -456,6 +471,197 @@ $('#clear-filter-btn').addEventListener('click', () => {
   renderCards();
 });
 
+// ---------- P3-M4：记事本列表 / 编辑器 / 自动保存 ----------
+let editingNoteId = null;
+let noteSaveTimer = null;
+let noteSavePending = false;
+let noteSavePromise = null;
+
+function renderNoteSpaces() {
+  const list = $('#note-space-list');
+  list.textContent = '';
+  list.appendChild(noteSpaceItem(null, '全部笔记', state.notes.length));
+  state.spaces.forEach((space, index) => {
+    list.appendChild(noteSpaceItem(space.id, space.name, noteCountIn(space.id), index));
+  });
+}
+
+function noteSpaceItem(id, name, count, index) {
+  const glyphClass = id === null ? 'night' : GLYPHS[(index + 1) % GLYPHS.length];
+  return el('button', {
+    type: 'button',
+    class: `space-item${state.noteSpaceId === id ? ' active' : ''}`,
+    onclick: () => { state.noteSpaceId = id; renderNotes(); }
+  }, [
+    el('span', { class: `space-glyph ${glyphClass}`, text: id === null ? '✦' : (name.trim().charAt(0) || '·') }),
+    el('span', { class: 'space-name', text: name }),
+    el('b', { text: String(count) })
+  ]);
+}
+
+function visibleNotes() {
+  const q = state.noteQ.trim().toLowerCase();
+  const list = state.notes.filter((note) => {
+    if (!note) return false;
+    if (state.noteSpaceId && note.spaceId !== state.noteSpaceId) return false;
+    return !q || `${note.title || ''}\n${note.content || ''}`.toLowerCase().includes(q);
+  });
+  if (state.noteSort === 'title') {
+    return list.slice().sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'zh'));
+  }
+  return list.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+function renderNotes() {
+  const visible = visibleNotes();
+  const space = state.spaces.find((s) => s.id === state.noteSpaceId);
+  const name = space ? space.name : '全部笔记';
+  $('#current-note-space').textContent = name;
+  $('#note-workspace-title').textContent = name;
+  $('#note-workspace-description').textContent = space
+    ? `管理「${space.name}」空间内的记事本。`
+    : '无需配置，一键新建；打开即写，内容自动保存。';
+  $('#note-count').textContent = String(visible.length);
+  const grid = $('#note-grid');
+  grid.textContent = '';
+  grid.hidden = visible.length === 0;
+  $('#note-empty').hidden = visible.length > 0;
+  const emptyTitle = $('#note-empty h3');
+  const emptyText = $('#note-empty p');
+  const hasAny = state.notes.length > 0;
+  emptyTitle.textContent = hasAny ? '没有找到匹配笔记' : '还没有记事本';
+  emptyText.textContent = hasAny ? '尝试更换关键词或切换记事空间。' : '点击右上角「新建内容」，无需任何配置即可开始记录。';
+  visible.forEach((note) => grid.appendChild(noteCard(note)));
+  renderNoteSpaces();
+}
+
+function noteCard(note) {
+  const space = state.spaces.find((s) => s.id === note.spaceId);
+  return el('article', {
+    class: 'note-card', tabindex: '0', role: 'button',
+    'aria-label': `打开 ${note.title || '无标题笔记'}`,
+    onclick: () => openNoteEditor(note.id),
+    onkeydown: (e) => { if (e.key === 'Enter') openNoteEditor(note.id); }
+  }, [
+    el('div', { class: 'note-card-top' }, [
+      el('span', { class: 'note-glyph', text: '✎' }),
+      el('span', { class: 'note-space-tag', text: space ? space.name : '未分类' })
+    ]),
+    el('h3', { text: note.title || '无标题笔记' }),
+    el('p', { class: 'note-excerpt', text: note.content || '空白记事本，点击打开开始记录' }),
+    el('footer', null, [
+      el('span', { text: `${fmtDate(note.updatedAt)} 更新` }),
+      el('span', { class: 'note-open-hint', text: '打开编辑' })
+    ])
+  ]);
+}
+
+function setNoteSaveState(message, mode) {
+  const node = $('#note-save-state');
+  node.classList.toggle('saving', mode === 'saving');
+  node.classList.toggle('error', mode === 'error');
+  while (node.childNodes.length > 1) node.removeChild(node.lastChild);
+  node.appendChild(document.createTextNode(message));
+}
+
+function openNoteEditor(id) {
+  const note = state.notes.find((item) => item && item.id === id);
+  if (!note) { showToast('记事本不存在'); return; }
+  editingNoteId = note.id;
+  noteSavePending = false;
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  const space = state.spaces.find((s) => s.id === note.spaceId);
+  $('#note-editor-space').textContent = space ? space.name : '未分类';
+  $('#note-title').value = note.title || '';
+  $('#note-content').value = note.content || '';
+  setNoteSaveState('内容自动保存');
+  $('#note-browser').hidden = true;
+  $('#note-editor').hidden = false;
+  $('#note-content').focus();
+}
+
+function noteDraftChanged() {
+  const note = state.notes.find((item) => item && item.id === editingNoteId);
+  if (!note) return;
+  note.title = $('#note-title').value.trim();
+  note.content = $('#note-content').value;
+  note.updatedAt = Date.now();
+  noteSavePending = true;
+  setNoteSaveState('保存中…', 'saving');
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => { noteSaveTimer = null; saveNoteNow(); }, 450);
+}
+
+async function saveNoteNow() {
+  if (noteSaveTimer) { clearTimeout(noteSaveTimer); noteSaveTimer = null; }
+  if (noteSavePromise) {
+    await noteSavePromise;
+    return noteSavePending ? saveNoteNow() : undefined;
+  }
+  if (!noteSavePending || !editingNoteId) return;
+  const id = editingNoteId;
+  noteSavePending = false;
+  const payload = { id, title: $('#note-title').value, content: $('#note-content').value };
+  noteSavePromise = api.noteSave(payload).catch(() => ({ ok: false, error: '保存失败' }));
+  const res = await noteSavePromise;
+  noteSavePromise = null;
+  if (!res || res.ok !== true) {
+    setNoteSaveState((res && res.error) || '保存失败', 'error');
+    return false;
+  }
+  if (noteSavePending) return saveNoteNow();
+  state.notes = res.notes || state.notes;
+  setNoteSaveState('内容自动保存');
+  return true;
+}
+
+async function closeNoteEditor() {
+  const saved = await saveNoteNow();
+  if (saved === false) { showToast('保存失败，请稍后重试'); return; }
+  $('#note-editor').hidden = true;
+  $('#note-browser').hidden = false;
+  editingNoteId = null;
+  renderNotes();
+}
+
+async function createNote() {
+  const res = await api.noteCreate(state.noteSpaceId || state.defaultSpaceId);
+  if (!handleResult(res)) return;
+  openNoteEditor(res.noteId);
+  showToast('已新建记事本，直接开始记录');
+}
+
+async function deleteCurrentNote() {
+  const note = state.notes.find((item) => item && item.id === editingNoteId);
+  if (!note) return;
+  const answer = await confirmDialog({
+    title: '删除记事本', subtitle: '该操作不可撤销',
+    message: `确定要删除「${note.title || '无标题笔记'}」吗？`,
+    actions: [{ label: '删除记事本', kind: 'danger', value: 'ok' }]
+  });
+  if (answer !== 'ok') return;
+  if (noteSaveTimer) { clearTimeout(noteSaveTimer); noteSaveTimer = null; }
+  noteSavePending = false;
+  if (noteSavePromise) await noteSavePromise;
+  const res = await api.noteDelete(note.id);
+  if (!handleResult(res)) return;
+  editingNoteId = null;
+  $('#note-editor').hidden = true;
+  $('#note-browser').hidden = false;
+  showToast('记事本已删除');
+}
+
+$('#note-create-btn').addEventListener('click', createNote);
+$('#note-empty-create').addEventListener('click', createNote);
+$('#note-back').addEventListener('click', closeNoteEditor);
+$('#note-delete').addEventListener('click', deleteCurrentNote);
+$('#note-title').addEventListener('input', noteDraftChanged);
+$('#note-content').addEventListener('input', noteDraftChanged);
+$('#note-search').addEventListener('input', (e) => { state.noteQ = e.target.value; renderNotes(); });
+$('#note-sort').addEventListener('change', (e) => { state.noteSort = e.target.value; renderNotes(); });
+$('#note-space-create-btn').addEventListener('click', () => openSpaceDialog('create'));
+$('#note-space-manage-btn').addEventListener('click', () => openSpaceDialog('manage'));
+
 // ---------- P3-M2：项目空间管理模态框 ----------
 let spaceDialogMode = 'create'; // create | manage
 let spaceRenameId = null;
@@ -481,13 +687,15 @@ function renderSpaceManager() {
   const list = $('#space-manager-list');
   list.textContent = '';
   state.spaces.forEach((s, i) => {
-    const count = countIn(s.id);
+    const entryCount = countIn(s.id);
+    const notesCount = noteCountIn(s.id);
+    const count = totalCountIn(s.id);
     const isDefault = s.id === state.defaultSpaceId;
     list.appendChild(el('div', { class: 'manager-row' }, [
       el('span', { class: `space-glyph ${GLYPHS[(i + 1) % GLYPHS.length]}`, text: s.name.trim().charAt(0) || '·' }),
       el('div', null, [
         el('strong', { text: s.name }),
-        el('small', { text: isDefault ? `默认空间 · ${count} 条` : `${count} 条内容` })
+        el('small', { text: `${isDefault ? '默认空间 · ' : ''}${entryCount} 条内容 · ${notesCount} 条笔记` })
       ]),
       el('div', { class: 'row-actions' }, [
         el('button', {

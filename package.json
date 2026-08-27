@@ -8,6 +8,7 @@
     "start": "electron .",
     "test:chat": "node scripts/test-chat.js",
     "test:storage": "node scripts/test-storage.js",
+    "test:content": "node scripts/test-content.js",
     "make-icon": "electron scripts/make-icon.js",
     "dist": "electron-builder --win",
     "dist:clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dist-temp.ps1"

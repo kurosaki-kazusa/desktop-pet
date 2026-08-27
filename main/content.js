@@ -1,6 +1,5 @@
-// main/content.js · P3-M2/M3：项目空间、统一内容模型与封面管理
-// 职责：空间 CRUD（重名校验/排序/删除两分支）、entry CRUD（type: prompt|command）、
-// 工作台数据拉取。所有变更返回最新 { spaces, entries } 并广播 data:changed（宠物窗口同步）。
+// main/content.js · P3-M2~M4：项目空间、内容模型、封面与记事本
+// 职责：空间 CRUD、entry CRUD、note CRUD 与工作台数据拉取。
 // P3-M3：coverId 支持 none / character / poster / 本地图片 data URL，并提供原生图片复制。
 
 const { ipcMain, BrowserWindow, clipboard, nativeImage } = require('electron');
@@ -14,6 +13,8 @@ const ENTRY_TYPES = ['prompt', 'command'];
 const COVER_IDS = ['none', 'character', 'poster'];
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
 const MAX_COVER_DATA_URL_LENGTH = Math.ceil(MAX_COVER_BYTES * 4 / 3) + 128;
+const NOTE_TITLE_MAX = 60;
+const NOTE_CONTENT_MAX = 100000;
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
@@ -33,9 +34,14 @@ function getEntries(store) {
   return Array.isArray(raw) ? raw : [];
 }
 
+function getNotes(store) {
+  const raw = store.get('notes');
+  return Array.isArray(raw) ? raw : [];
+}
+
 function snapshot(store) {
   // defaultSpaceId：渲染层据此识别默认空间（默认空间禁删，非空删除时作为迁移目标）
-  return { spaces: getSpaces(store), entries: getEntries(store), defaultSpaceId: DEFAULT_SPACE_ID };
+  return { spaces: getSpaces(store), entries: getEntries(store), notes: getNotes(store), defaultSpaceId: DEFAULT_SPACE_ID };
 }
 
 // 数据变更广播（排除发起者；宠物窗口 command:* 数据源同为 entries，需同步刷新）
@@ -133,20 +139,23 @@ function init(store) {
   ipcMain.handle('space:delete', (e, data) => {
     const spaces = getSpaces(store);
     const entries = getEntries(store);
+    const notes = getNotes(store);
     const id = String((data && data.id) || '');
     if (id === DEFAULT_SPACE_ID) {
       return { ok: false, error: '默认空间不可删除（其他空间删除时内容会迁移到这里）' };
     }
     if (!spaces.some((s) => s.id === id)) return { ok: false, error: '空间不存在' };
     if (spaces.length <= 1) return { ok: false, error: '至少保留一个项目空间' };
-    const affected = entries.filter((en) => en.spaceId === id).length;
+    const affected = entries.filter((en) => en.spaceId === id).length + notes.filter((note) => note.spaceId === id).length;
     if (affected > 0) {
       const strategy = data && data.strategy;
       if (strategy === 'purge') {
         store.set('entries', entries.filter((en) => en.spaceId !== id));
+        store.set('notes', notes.filter((note) => note.spaceId !== id));
       } else if (strategy === 'migrate') {
         // 系统性搬移不改 updatedAt，避免影响「最近更新」排序语义
         store.set('entries', entries.map((en) => (en.spaceId === id ? { ...en, spaceId: DEFAULT_SPACE_ID } : en)));
+        store.set('notes', notes.map((note) => (note.spaceId === id ? { ...note, spaceId: DEFAULT_SPACE_ID } : note)));
       } else {
         return { ok: false, error: '该空间内还有内容，请选择迁移或一并删除' };
       }
@@ -213,6 +222,43 @@ function init(store) {
     } catch {
       return { ok: false, error: '复制图片失败' };
     }
+  });
+
+  // ---------- P3-M4：记事本（零配置创建、即时自动保存、删除） ----------
+  ipcMain.handle('note:create', (e, data) => {
+    const spaces = getSpaces(store);
+    if (spaces.length === 0) return { ok: false, error: '请先创建项目空间' };
+    const requestedSpaceId = String((data && data.spaceId) || '');
+    const spaceId = spaces.some((s) => s.id === requestedSpaceId) ? requestedSpaceId : spaces[0].id;
+    const now = Date.now();
+    const note = { id: uid('note'), spaceId, title: '', content: '', createdAt: now, updatedAt: now };
+    store.set('notes', [note, ...getNotes(store)]);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, noteId: note.id, ...snapshot(store) };
+  });
+
+  ipcMain.handle('note:save', (e, data) => {
+    const d = data || {};
+    const notes = getNotes(store);
+    const index = notes.findIndex((note) => note && note.id === d.id);
+    if (index < 0) return { ok: false, error: '记事本不存在' };
+    const title = String(d.title || '').trim();
+    const content = String(d.content || '');
+    if (title.length > NOTE_TITLE_MAX) return { ok: false, error: `标题不能超过 ${NOTE_TITLE_MAX} 个字符` };
+    if (content.length > NOTE_CONTENT_MAX) return { ok: false, error: '记事本正文不能超过 100000 个字符' };
+    notes[index] = { ...notes[index], title, content, updatedAt: Date.now() };
+    store.set('notes', notes);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  ipcMain.handle('note:delete', (e, id) => {
+    const idStr = String(id || '');
+    const notes = getNotes(store);
+    if (!notes.some((note) => note && note.id === idStr)) return { ok: false, error: '记事本不存在' };
+    store.set('notes', notes.filter((note) => !note || note.id !== idStr));
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
   });
 }
 

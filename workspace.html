@@ -33,11 +33,51 @@
   <!-- 主内容区：P3-M1 为页面路由骨架，各页面内容随 P3-M2+ 里程碑填充 -->
   <main class="pages">
     <section class="page" id="page-notes">
-      <div class="page-placeholder">
-        <span class="glyph">✎</span>
-        <h2>记事本</h2>
-        <p>零配置随手记录，打开即写，内容自动保存；灵感按项目空间归档。</p>
-        <em>P3-M4 上线</em>
+      <aside class="space-sidebar">
+        <div class="sidebar-heading">
+          <div><span class="eyebrow">NOTEBOOKS</span><h2>记事空间</h2></div>
+          <button type="button" class="icon-button" id="note-space-create-btn" title="新建空间" aria-label="新建空间">＋</button>
+        </div>
+        <div class="space-list" id="note-space-list"></div>
+        <div class="sidebar-tip">
+          <img src="assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="" draggable="false">
+          <div><strong>随手记录</strong><p>灵感与想法无需配置，一键开写。</p></div>
+        </div>
+        <button type="button" class="sidebar-action" id="note-space-manage-btn">管理项目空间</button>
+      </aside>
+
+      <div class="workspace notes-workspace">
+        <div id="note-browser">
+          <header class="content-header">
+            <div>
+              <div class="breadcrumb">记事本 <span>/</span> <b id="current-note-space">全部笔记</b></div>
+              <h1 id="note-workspace-title">全部笔记</h1>
+              <p id="note-workspace-description">无需配置，一键新建；打开即写，内容自动保存。</p>
+            </div>
+            <button type="button" class="primary-button" id="note-create-btn"><span>＋</span>新建内容</button>
+          </header>
+          <div class="toolbar notes-toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="note-search" type="search" placeholder="搜索记事本标题或内容"></label>
+            <label class="sort-control"><span>排序</span><select id="note-sort"><option value="updated">最近更新</option><option value="title">标题 A–Z</option></select></label>
+          </div>
+          <div class="result-line"><span><b id="note-count">0</b> 条笔记</span><span>点击板块直接打开，编辑内容即时自动保存</span></div>
+          <div class="note-grid" id="note-grid"></div>
+          <div class="empty-state" id="note-empty" hidden>
+            <span>✎</span><h3>还没有记事本</h3><p>点击右上角「新建内容」，无需任何配置即可开始记录。</p><button type="button" class="ghost-button" id="note-empty-create">新建记事本</button>
+          </div>
+        </div>
+
+        <div class="note-editor" id="note-editor" hidden>
+          <header class="note-editor-header">
+            <button type="button" class="ghost-button" id="note-back">‹ 返回列表</button>
+            <div class="note-editor-meta"><b id="note-editor-space">未分类</b><span id="note-save-state"><i></i>内容自动保存</span></div>
+            <button type="button" class="danger-text" id="note-delete">删除记事本</button>
+          </header>
+          <div class="note-editor-body">
+            <input id="note-title" class="note-title-input" maxlength="60" placeholder="无标题笔记">
+            <textarea id="note-content" class="note-content-input" maxlength="100000" placeholder="在这里记录此刻的灵感与想法…" spellcheck="false"></textarea>
+          </div>
+        </div>
       </div>
     </section>
 

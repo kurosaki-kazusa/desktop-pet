@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('petAPI', {
   entrySave: (entry) => ipcRenderer.invoke('entry:save', entry),
   entryDelete: (id) => ipcRenderer.invoke('entry:delete', id),
   entryCopyCover: (coverId) => ipcRenderer.invoke('entry:copy-cover', coverId),
+  // P3-M4 记事本：零配置创建、自动保存、删除
+  noteCreate: (spaceId) => ipcRenderer.invoke('note:create', { spaceId }),
+  noteSave: (note) => ipcRenderer.invoke('note:save', note),
+  noteDelete: (id) => ipcRenderer.invoke('note:delete', id),
   // 置顶开关（v2.4：配置中心「始终置顶」勾选，关闭时降级普通窗口并停止保活）
   setAlwaysOnTop: (v) => ipcRenderer.invoke('window:set-always-on-top', v),
   // 系统能力
