@@ -26,6 +26,23 @@ contextBridge.exposeInMainWorld('petAPI', {
   dragEnd: () => ipcRenderer.send('window:drag-end'),
   // 配置中心独立窗口：双击宠物时主进程创建居中设置窗口（宠物窗口不动）/关闭它
   setConfigOpen: (open) => ipcRenderer.send('window:set-config-open', open),
+  // 工作台独立窗口（P3-M1）：右键桌宠打开/聚焦；窗口控制与页面路由
+  openWorkspace: () => ipcRenderer.send('workspace:open'),
+  workspaceGetInit: () => ipcRenderer.invoke('workspace:get-init'),
+  workspaceSetPage: (page) => ipcRenderer.send('workspace:set-page', page),
+  workspaceWinControl: (action) => ipcRenderer.send('workspace:win-control', action),
+  // 主进程 → 渲染层：工作台最大化状态同步（切换「最大化/还原」按钮图形）
+  onWorkspaceWinState: (cb) => ipcRenderer.on('workspace:win-state', (e, d) => cb(d)),
+  // 项目空间与统一内容模型（P3-M2）：工作台提示词管理页数据与 CRUD；
+  // 变更响应统一为 { ok, spaces, entries, defaultSpaceId } 或 { ok: false, error }
+  workspaceGetData: () => ipcRenderer.invoke('workspace:get-data'),
+  spaceCreate: (name) => ipcRenderer.invoke('space:create', { name }),
+  spaceRename: (id, name) => ipcRenderer.invoke('space:rename', { id, name }),
+  spaceMove: (id, direction) => ipcRenderer.invoke('space:move', { id, direction }),
+  spaceDelete: (id, strategy) => ipcRenderer.invoke('space:delete', { id, strategy }),
+  entrySave: (entry) => ipcRenderer.invoke('entry:save', entry),
+  entryDelete: (id) => ipcRenderer.invoke('entry:delete', id),
+  entryCopyCover: (coverId) => ipcRenderer.invoke('entry:copy-cover', coverId),
   // 置顶开关（v2.4：配置中心「始终置顶」勾选，关闭时降级普通窗口并停止保活）
   setAlwaysOnTop: (v) => ipcRenderer.invoke('window:set-always-on-top', v),
   // 系统能力

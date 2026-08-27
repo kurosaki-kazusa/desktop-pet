@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
 const { ChatEngine, loadEnvFrom } = require('./chat'); // v2.3 大模型会话后端（复刻 deepseek-harness 会话设计）
+const storage = require('./main/storage'); // P3-M0：schema v3 数据底座（迁移/默认值/旧命令映射）
+const workspaceWindow = require('./main/workspace-window'); // P3-M1：正式工作台独立窗口
+const content = require('./main/content'); // P3-M2：项目空间与统一内容模型（space:*/entry:*）
 
 // 统一缩放因子为 1：彻底消除 Windows 混合 DPI 下 setPosition 的隐形尺寸漂移
 // （主屏修复后副屏仍漂移的根因——缩放不同的显示器走不同的 DIP 换算路径）。
@@ -28,6 +31,14 @@ const store = new Store({
 if (!store.get('posSchemaV2')) {
   store.set('settings.windowPos', null);
   store.set('posSchemaV2', true);
+}
+
+// ---------- P3-M0：schema v3 一次性迁移（旧 commands → entries） ----------
+// 备份 → 转换 → 校验 → 落盘 → 写 schemaVersion；失败回滚（不写版本号、不删旧字段），
+// 备份键 backupSchemaV2 保留供人工恢复。每次启动幂等执行（已是 v3 只补默认字段）。
+const migrationResult = storage.migrate(store);
+if (!migrationResult.ok) {
+  console.error('[storage] schema v3 迁移失败（旧数据已保留，可从 backupSchemaV2 恢复）：', migrationResult.error);
 }
 
 // ---------- 大模型会话引擎（v2.3：chat.js 流式后端，.env 填 DEEPSEEK_API_KEY 即用） ----------
@@ -99,7 +110,8 @@ function findEnvFile() {
 
 const chatEngine = new ChatEngine({
   getConfig: () => ({ settings: getChatSettings(), env: chatEnv }),
-  getCatalog: () => (store.get('commands') || []).map((c) => c.title).filter(Boolean),
+  // P3-M0：数据源由旧 commands 切换为 entries（旧命令已迁移，标题目录语义不变）
+  getCatalog: () => (store.get('entries') || []).map((c) => c.title).filter(Boolean),
   loadHistory: () => store.get('chat.history') || [],
   saveHistory: (h) => store.set('chat.history', h),
   loadSummary: () => store.get('chat.historySummary') || '',
@@ -266,17 +278,9 @@ function tick() {
 function registerIpc() {
   // 数据读取
   ipcMain.handle('data:get-all', () => {
-    // v2.0 数据迁移：原“显示在右键复制看板”（quick）字段改为“置顶”（pinned）——
-    // 旧数据 quick=true 迁移为 pinned=true（保持用户已勾选状态），quick 字段移除；
-    // 置顶无数量上限（原复制看板最多 5 条的限制随看板功能一起下线）
-    const raw = store.get('commands') || [];
-    const commands = raw.map((c) => {
-      const { quick, ...rest } = c;
-      return { ...rest, pinned: quick === true || c.pinned === true };
-    });
-    if (commands.some((c, i) => c.pinned !== raw[i].pinned || raw[i].quick !== undefined)) {
-      store.set('commands', commands);
-    }
+    // P3-M0：数据源由旧 commands 切换为 schema v3 entries，经映射辅助转为命令 UI 形态
+    // （渲染层零改动复用；v2.0 的 quick→pinned 迁移已由 storage.migrate 在启动时完成）
+    const commands = storage.commandsFromEntries(store.get('entries') || []);
     return {
       reminders: store.get('reminders'),
       commands,
@@ -309,25 +313,25 @@ function registerIpc() {
     return list;
   });
 
-  // 命令 CRUD
+  // 命令 CRUD（P3-M0：底层存储切换为 entries；对外 IPC 形态不变，渲染层零改动）
   ipcMain.handle('command:add', (e, c) => {
-    const list = store.get('commands');
-    list.push(c);
-    store.set('commands', list);
+    const entries = store.get('entries') || [];
+    entries.push(storage.entryFromCommand(c));
+    store.set('entries', entries);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
-    return list;
+    return storage.commandsFromEntries(entries);
   });
   ipcMain.handle('command:update', (e, c) => {
-    const list = store.get('commands').map(x => (x.id === c.id ? c : x));
-    store.set('commands', list);
+    const entries = (store.get('entries') || []).map((x) => (x.id === c.id ? storage.applyCommandToEntry(x, c) : x));
+    store.set('entries', entries);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
-    return list;
+    return storage.commandsFromEntries(entries);
   });
   ipcMain.handle('command:remove', (e, id) => {
-    const list = store.get('commands').filter(x => x.id !== id);
-    store.set('commands', list);
+    const entries = (store.get('entries') || []).filter(x => x.id !== id);
+    store.set('entries', entries);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
-    return list;
+    return storage.commandsFromEntries(entries);
   });
 
   // 大模型会话（v2.3）：流式对话入口 / 中止 / 配置保存 / 清空历史
@@ -478,6 +482,14 @@ function registerIpc() {
       cfgWin.close();
     }
   });
+
+  // 正式工作台独立窗口（P3-M1）：右键桌宠打开/聚焦；关闭工作台不退出桌宠（宠物窗口是主生命周期）。
+  // 配置中心窗口代码保留待 P3-M7 设置页接管其能力后下线，右键入口已切换为工作台
+  workspaceWindow.init(store);
+
+  // 项目空间与统一内容模型（P3-M2）：工作台提示词管理页数据与 CRUD；
+  // 变更会广播 data:changed（宠物窗口 command:* 数据源同为 entries，需同步）
+  content.init(store);
 
   // 置顶开关（v2.4）：配置中心「始终置顶」勾选——关闭时降级为普通窗口并停止保活，
   // 把“压过其他置顶窗口”与“让用户主动置顶的应用盖住桌宠”的选择权交给用户

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>流萤工作台</title>
+  <link rel="stylesheet" href="workspace.css">
+</head>
+<body>
+
+  <!-- 自定义深色钢蓝标题栏（设计规范 §8.1）：拖动区 + 窗口控制按钮 -->
+  <header class="titlebar" id="titlebar">
+    <div class="app-identity">
+      <img src="assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt="" class="app-mark" draggable="false">
+      <div><strong>流萤工作台</strong><span>AI 创作与日程中心</span></div>
+    </div>
+    <div class="titlebar-status"><i></i>本地运行</div>
+    <div class="window-actions" aria-label="窗口控制按钮">
+      <button type="button" data-window-action="minimize" aria-label="最小化"></button>
+      <button type="button" data-window-action="maximize" aria-label="最大化"></button>
+      <button type="button" data-window-action="close" aria-label="关闭"></button>
+    </div>
+  </header>
+
+  <!-- 四项顶部导航：点击直接切换主内容区完整页面（需求规范 §7.2） -->
+  <nav class="top-nav" aria-label="主导航">
+    <button type="button" class="nav-item notes" data-page="notes">记事本</button>
+    <button type="button" class="nav-item prompts active" data-page="prompts">提示词管理工具</button>
+    <button type="button" class="nav-item schedule" data-page="schedule">日程管理</button>
+    <button type="button" class="nav-item settings" data-page="settings">设置</button>
+    <div class="nav-meta"><span class="status-dot"></span>工作台已就绪</div>
+  </nav>
+
+  <!-- 主内容区：P3-M1 为页面路由骨架，各页面内容随 P3-M2+ 里程碑填充 -->
+  <main class="pages">
+    <section class="page" id="page-notes">
+      <div class="page-placeholder">
+        <span class="glyph">✎</span>
+        <h2>记事本</h2>
+        <p>零配置随手记录，打开即写，内容自动保存；灵感按项目空间归档。</p>
+        <em>P3-M4 上线</em>
+      </div>
+    </section>
+
+    <section class="page active" id="page-prompts">
+      <aside class="space-sidebar">
+        <div class="sidebar-heading">
+          <div><span class="eyebrow">WORKSPACES</span><h2>项目空间</h2></div>
+          <button type="button" class="icon-button" id="space-create-btn" title="新建空间" aria-label="新建空间">＋</button>
+        </div>
+        <div class="space-list" id="space-list"></div>
+        <div class="sidebar-tip">
+          <img src="assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="" draggable="false">
+          <div><strong>一级空间</strong><p>将命令与提示词归入不同创作场景。</p></div>
+        </div>
+        <button type="button" class="sidebar-action" id="space-manage-btn">管理项目空间</button>
+      </aside>
+
+      <div class="workspace">
+        <header class="content-header">
+          <div>
+            <div class="breadcrumb">提示词管理工具 <span>/</span> <b id="current-space">全部内容</b></div>
+            <h1 id="workspace-title">全部内容</h1>
+            <p id="workspace-description">集中整理命令和提示词，快速查找、编辑与复制。</p>
+          </div>
+          <button type="button" class="primary-button" id="entry-create-btn"><span>＋</span>新建内容</button>
+        </header>
+
+        <div class="toolbar">
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="prompt-search" type="search" placeholder="搜索标题或正文"><kbd>Ctrl K</kbd></label>
+          <div class="filter-group" aria-label="内容类型筛选">
+            <button type="button" class="filter-chip active" data-filter="all">全部</button>
+            <button type="button" class="filter-chip" data-filter="prompt">提示词</button>
+            <button type="button" class="filter-chip" data-filter="command">命令</button>
+          </div>
+          <label class="sort-control"><span>排序</span><select id="entry-sort"><option value="pinned">置顶优先</option><option value="updated">最近更新</option><option value="title">标题 A–Z</option></select></label>
+        </div>
+
+        <div class="result-line"><span><b id="result-count">0</b> 条内容</span><span id="result-hint">带图卡片显示 3 行正文，紧凑卡片显示 4 行正文</span></div>
+        <div class="card-grid" id="prompt-grid"></div>
+        <div class="empty-state" id="entry-empty" hidden>
+          <span>⌕</span><h3>没有找到匹配内容</h3><p>尝试更换关键词或筛选条件，也可以新建一条内容。</p><button type="button" class="ghost-button" id="clear-filter-btn">清除筛选</button>
+        </div>
+        <div class="empty-state" id="entry-none" hidden>
+          <span>✦</span><h3>还没有内容</h3><p>点击右上角「新建内容」，开始整理你的提示词与常用命令。</p><button type="button" class="ghost-button" id="entry-none-create">新建内容</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-schedule">
+      <div class="page-placeholder">
+        <span class="glyph">▦</span>
+        <h2>日程管理</h2>
+        <p>长期待办与今日事项两列看板、纯日期月历，整合现有提醒管理。</p>
+        <em>P3-M5 / P3-M6 上线</em>
+      </div>
+    </section>
+
+    <section class="page" id="page-settings">
+      <div class="page-placeholder">
+        <span class="glyph">⚙</span>
+        <h2>设置</h2>
+        <p>通用设置、大模型配置与应用级信息，将在同一页面管理。</p>
+        <em>P3-M7 上线</em>
+      </div>
+    </section>
+  </main>
+
+  <!-- 内容详情抽屉（P3-M3：编辑、封面预览/上传、复制与删除） -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="entry-drawer" id="entry-drawer" aria-hidden="true">
+    <header><div><span class="drawer-mode" id="entry-mode-label">编辑内容</span><b id="entry-drawer-type">提示词</b></div><button type="button" id="entry-drawer-close" aria-label="关闭">×</button></header>
+    <form id="entry-form">
+      <div class="drawer-cover no-cover-preview" id="entry-cover-preview">
+        <div><small id="cover-preview-kicker">COMPACT CARD</small><strong id="cover-preview-title">无图片的紧凑卡片</strong><span id="cover-preview-hint">选择本地图片后自动切换为带图卡片</span></div>
+        <label class="cover-upload"><input type="file" id="entry-cover-file" accept="image/png,image/jpeg,image/webp">选择本地图片</label>
+      </div>
+      <div class="drawer-content">
+        <input type="hidden" id="entry-id">
+        <div class="field-grid two">
+          <label><span>内容类型</span><select id="entry-type"><option value="prompt">提示词</option><option value="command">常用命令</option></select></label>
+          <label><span>项目空间</span><select id="entry-space"></select></label>
+        </div>
+        <label class="field"><span>标题 <b>*</b></span><input id="entry-title" maxlength="60" placeholder="输入便于识别的标题"><small class="field-error" data-error-for="entry-title"></small></label>
+        <label class="field"><span>正文 <b>*</b></span><textarea id="entry-content" maxlength="2000" placeholder="输入提示词或多行命令"></textarea><small class="field-meta"><span class="field-error" data-error-for="entry-content"></span><i id="entry-char-count">0 / 2000</i></small></label>
+        <label class="field"><span>卡片封面</span><select id="entry-cover"><option value="image">包含图片的卡片</option><option value="none">无图片的紧凑卡片</option></select></label>
+        <div class="drawer-options"><label><input type="checkbox" id="entry-pinned">置顶</label><span>命令仅可复制，不会执行</span></div>
+      </div>
+      <footer><button type="button" class="danger-text" id="entry-delete">删除</button><div><button type="button" class="ghost-button" id="entry-copy">复制全文</button><button type="submit" class="primary-button" id="entry-save">保存内容</button></div></footer>
+    </form>
+  </aside>
+
+  <!-- 项目空间新建/管理模态框 -->
+  <dialog class="modal" id="space-dialog">
+    <form method="dialog" id="space-form">
+      <header><div><span class="modal-icon mint">▦</span><div><h2 id="space-dialog-title">新建项目空间</h2><p>空间仅支持一级分类</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+      <div class="modal-body">
+        <label class="field"><span>空间名称 <b>*</b></span><input id="space-name" maxlength="16" placeholder="例如：课程演示"><small class="field-error" data-error-for="space-name"></small></label>
+        <div class="space-manager" id="space-manager" hidden><div class="manager-title"><span>现有空间</span><small>选择编辑、排序或删除</small></div><div id="space-manager-list"></div></div>
+      </div>
+      <footer><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button" id="space-save">保存空间</button></footer>
+    </form>
+  </dialog>
+
+  <!-- 通用确认弹窗（空间删除两分支等危险操作） -->
+  <dialog class="modal confirm-modal" id="confirm-dialog">
+    <form method="dialog">
+      <header><div><span class="modal-icon pink">!</span><div><h2 id="confirm-title">确认操作</h2><p id="confirm-subtitle">请确认是否继续</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+      <div class="modal-body"><p id="confirm-message"></p></div>
+      <footer><button value="cancel" class="ghost-button">取消</button><div id="confirm-actions"></div></footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span><b id="toast-message">操作完成</b></div>
+
+  <script src="workspace.js"></script>
+</body>
+</html>

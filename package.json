@@ -7,6 +7,7 @@
   "scripts": {
     "start": "electron .",
     "test:chat": "node scripts/test-chat.js",
+    "test:storage": "node scripts/test-storage.js",
     "make-icon": "electron scripts/make-icon.js",
     "dist": "electron-builder --win",
     "dist:clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dist-temp.ps1"
@@ -15,7 +16,7 @@
     "appId": "com.vibecoding.ai-desktop-pet",
     "productName": "AI桌宠",
     "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "renderer.js", "index.html", "styles.css", "chat.js", "assets/**/*", "!assets/ScreenShot_2026-08-24_100223_551.png"],
+    "files": ["main.js", "main/**/*", "preload.js", "renderer.js", "index.html", "styles.css", "workspace.html", "workspace.css", "workspace.js", "chat.js", "assets/**/*", "!assets/ScreenShot_2026-08-24_100223_551.png"],
     "electronDownload": {
       "mirror": "https://registry.npmmirror.com/-/binary/electron/"
     },

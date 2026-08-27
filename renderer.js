@@ -233,11 +233,11 @@ function onDoubleClick() {
   toggleBubble(); // v2.1：双击打开对话交互面板（与右键配置中心对调，对话是高频主功能）
 }
 
-// ---------- 右键打开配置中心（v2.1：与双击对调——右键=设置，符合 Windows 惯例） ----------
+// ---------- 右键打开工作台（P3-M1：正式工作台取代配置中心；v2.1 起右键=设置入口惯例不变） ----------
 pet.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   closeBubble(); // 若对话面板开着先收起
-  api.setConfigOpen(true); // 主进程：创建居中配置窗口（宠物窗口原位不动）
+  api.openWorkspace(); // 主进程：打开/聚焦工作台独立窗口（已打开只恢复聚焦，宠物窗口原位不动）
 });
 
 // 默认问候语：首次打开面板时输出，后续回复持续追加到对话气泡
