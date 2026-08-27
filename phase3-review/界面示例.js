@@ -24,6 +24,12 @@
       { id: 'entry-negative', spaceId: 'art', type: 'prompt', title: '通用负面提示词', content: 'low quality, blurry, extra fingers, malformed hands, watermark, text artifacts, oversaturated colors', cover: 'none', pinned: false, updated: 2 },
       { id: 'entry-outline', spaceId: 'writing', type: 'prompt', title: '课程大纲生成器', content: '根据学习目标与受众基础，生成包含导入、演示、练习和总结的 90 分钟课程大纲。', cover: 'none', pinned: false, updated: 1 }
     ],
+    notes: [
+      { id: 'note-build', spaceId: 'commands', title: '打包流程备忘', content: '先跑 npm run dist:clean，产物输出到 TEMP 目录，再复制回 dist\。注意 .env 不能进入安装包，打包前先检查 files 白名单。', updated: 6 },
+      { id: 'note-idea', spaceId: 'writing', title: '课程互动点子', content: '让学生现场改一行 CSS，观察卡片样式变化；再用 QA 脚本演示自动化验收，直观感受“小步验证”的价值。', updated: 5 },
+      { id: 'note-color', spaceId: 'art', title: '配色灵感', content: '深夜蓝 #0b1830 搭配萤光青 #54d7d7，金色点缀不超过 10%。对比度不足时优先调背景明度而不是换主色。', updated: 4 },
+      { id: 'note-poster', spaceId: 'poster', title: '海报文案草稿', content: '主标题：「让灵感在桌面上发光」。副标题备选：「随手记下每一个火花」。视觉沿用流萤主题，右下角留版本号位置。', updated: 3 }
+    ],
     tasks: [
       { id: 'task-review', kind: 'range', title: '确认三期界面方案', startDate: '2026-08-20', endDate: '2026-09-05', time: '', priority: 'high', notes: '整理评审意见并冻结主要交互。', reminderId: 'reminder-review', completed: false },
       { id: 'task-course', kind: 'range', title: '准备课程演示素材', startDate: '2026-08-25', endDate: '2026-08-30', time: '', priority: 'normal', notes: '补充提示词管理的示例数据。', reminderId: null, completed: false },
@@ -43,11 +49,15 @@
   const state = {
     ...cloneInitial(),
     page: 'prompts', currentSpace: 'all', filter: 'all', search: '', sort: 'pinned',
+    currentNoteSpace: 'all', noteSearch: '', noteSort: 'updated', editingNoteId: null,
+    defaultPage: 'prompts',
     selectedDate: '2026-08-25', calendarYear: 2026, calendarMonth: 7,
     editingEntryId: null, editingTaskId: null, editingReminderId: null,
     selectedDay: 25, customCover: null, coverFallback: 'character',
     rangePickerYear: 2026, rangePickerMonth: 7, selectingRangeEnd: false
   };
+
+  let noteSaveTimer;
 
   let toastTimer;
   const toast = (message, icon = '✓') => {
@@ -87,6 +97,7 @@
     state.page = page;
     $$('.page').forEach((node) => node.classList.toggle('active', node.id === `page-${page}`));
     $$('.nav-item').forEach((node) => node.classList.toggle('active', node.dataset.page === page));
+    if (page === 'notes') renderNotes();
     if (page === 'schedule') renderSchedule();
   }
 
@@ -315,6 +326,7 @@
     }
     dialog.close();
     renderEntries();
+    renderNotes();
   }
 
   function showConfirm({ title, subtitle = '此操作需要确认', message, confirmText = '确认', danger = true, extra = '' }) {
@@ -338,22 +350,134 @@
       return;
     }
     const entries = state.entries.filter((entry) => entry.spaceId === spaceId);
+    const notes = state.notes.filter((note) => note.spaceId === spaceId);
     let extra = '';
-    if (entries.length) {
+    if (entries.length + notes.length) {
       const choices = state.spaces.filter((item) => item.id !== spaceId);
       extra = `<div class="field-grid two"><label><span>内容处理方式</span><select id="space-delete-strategy"><option value="migrate">迁移全部内容（推荐）</option><option value="delete">一并删除内容</option></select></label><label><span>迁移目标</span><select id="space-migrate-target">${choices.map((item) => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label></div>`;
     }
-    const ok = await showConfirm({ title: `删除“${space.name}”`, message: entries.length ? '请选择空间内现有内容的处理方式，然后删除当前空间。' : '这是一个空空间，可以安全删除。', confirmText: '确认删除空间', extra });
+    const ok = await showConfirm({ title: `删除“${space.name}”`, message: entries.length + notes.length ? '请选择空间内现有内容的处理方式，然后删除当前空间。' : '这是一个空空间，可以安全删除。', confirmText: '确认删除空间', extra });
     if (!ok) return;
     const strategy = $('#space-delete-strategy')?.value || 'migrate';
     const target = $('#space-migrate-target')?.value;
-    if (strategy === 'migrate' && target) entries.forEach((entry) => { entry.spaceId = target; });
-    if (strategy === 'delete') state.entries = state.entries.filter((entry) => entry.spaceId !== spaceId);
+    if (strategy === 'migrate' && target) {
+      entries.forEach((entry) => { entry.spaceId = target; });
+      notes.forEach((note) => { note.spaceId = target; });
+    }
+    if (strategy === 'delete') {
+      state.entries = state.entries.filter((entry) => entry.spaceId !== spaceId);
+      state.notes = state.notes.filter((note) => note.spaceId !== spaceId);
+    }
     state.spaces = state.spaces.filter((item) => item.id !== spaceId);
     if (state.currentSpace === spaceId) state.currentSpace = 'all';
+    if (state.currentNoteSpace === spaceId) state.currentNoteSpace = 'all';
     $('#space-dialog').close();
     renderEntries();
+    renderNotes();
     toast(strategy === 'delete' ? '空间及其中内容已删除' : '空间已删除，内容已安全迁移');
+  }
+
+  function renderNoteSpaces() {
+    const allCount = state.notes.length;
+    $('#note-space-list').innerHTML = `
+      <button type="button" class="space-item system ${state.currentNoteSpace === 'all' ? 'active' : ''}" data-note-space="all">
+        <span class="space-glyph night">✦</span><span>全部笔记</span><b>${allCount}</b>
+      </button>
+      ${state.spaces.map((space) => {
+        const count = state.notes.filter((note) => note.spaceId === space.id).length;
+        return `<button type="button" class="space-item ${state.currentNoteSpace === space.id ? 'active' : ''}" data-note-space="${esc(space.id)}">
+          <span class="space-glyph ${esc(space.tone)}">${esc(space.glyph)}</span><span>${esc(space.name)}</span><b>${count}</b>
+        </button>`;
+      }).join('')}`;
+  }
+
+  function getVisibleNotes() {
+    const keyword = state.noteSearch.trim().toLocaleLowerCase('zh-CN');
+    return state.notes
+      .filter((note) => state.currentNoteSpace === 'all' || note.spaceId === state.currentNoteSpace)
+      .filter((note) => !keyword || `${note.title} ${note.content}`.toLocaleLowerCase('zh-CN').includes(keyword))
+      .sort((a, b) => (state.noteSort === 'title' ? a.title.localeCompare(b.title, 'zh-CN') : b.updated - a.updated));
+  }
+
+  function renderNotes() {
+    const visible = getVisibleNotes();
+    const space = state.spaces.find((item) => item.id === state.currentNoteSpace);
+    const name = space?.name || '全部笔记';
+    $('#current-note-space').textContent = name;
+    $('#note-workspace-title').textContent = name;
+    $('#note-workspace-description').textContent = space ? `管理“${space.name}”空间内的记事本。` : '无需配置，一键新建；打开即写，内容自动保存。';
+    $('#note-count').textContent = String(visible.length);
+    $('#note-empty').hidden = visible.length > 0;
+    $('#note-grid').hidden = visible.length === 0;
+    $('#note-grid').innerHTML = visible.map((note) => {
+      const spaceName = state.spaces.find((item) => item.id === note.spaceId)?.name || '未分类';
+      return `<article class="note-card" data-note-id="${note.id}" tabindex="0">
+        <div class="note-card-top"><span class="note-glyph">✎</span><span class="note-space-tag">${esc(spaceName)}</span></div>
+        <h3>${esc(note.title || '无标题笔记')}</h3>
+        <p class="note-excerpt">${esc(note.content || '空白笔记，点击打开开始记录')}</p>
+        <footer><span>${note.updated >= 7 ? '刚刚更新' : `${note.updated + 1} 天前更新`}</span><span class="note-open-hint">打开编辑</span></footer>
+      </article>`;
+    }).join('');
+    renderNoteSpaces();
+  }
+
+  function setNoteSaveState(message, saving = false) {
+    const node = $('#note-save-state');
+    node.classList.toggle('saving', saving);
+    node.innerHTML = `<i></i>${esc(message)}`;
+  }
+
+  function openNoteEditor(noteId = null) {
+    state.editingNoteId = noteId;
+    const note = noteId ? state.notes.find((item) => item.id === noteId) : null;
+    $('#note-editor-space').textContent = state.spaces.find((item) => item.id === note?.spaceId)?.name || '未分类';
+    $('#note-title').value = note?.title || '';
+    $('#note-content').value = note?.content || '';
+    setNoteSaveState('内容自动保存');
+    $('#note-browser').hidden = true;
+    $('#note-editor').hidden = false;
+    $('#note-content').focus();
+  }
+
+  function closeNoteEditor() {
+    $('#note-editor').hidden = true;
+    $('#note-browser').hidden = false;
+    state.editingNoteId = null;
+    renderNotes();
+  }
+
+  function noteDraftChanged() {
+    const note = state.notes.find((item) => item.id === state.editingNoteId);
+    if (note) {
+      note.title = $('#note-title').value.trim();
+      note.content = $('#note-content').value;
+      note.updated = 99;
+    }
+    clearTimeout(noteSaveTimer);
+    setNoteSaveState('保存中…', true);
+    noteSaveTimer = setTimeout(() => setNoteSaveState('内容自动保存'), 500);
+  }
+
+  function createNote() {
+    const spaceId = state.currentNoteSpace === 'all' ? state.spaces[0]?.id || null : state.currentNoteSpace;
+    const note = { id: uid('note'), spaceId, title: '', content: '', updated: 99 };
+    state.notes.unshift(note);
+    renderNotes();
+    openNoteEditor(note.id);
+    toast('已新建记事本，直接开始记录');
+  }
+
+  async function deleteNote() {
+    const note = state.notes.find((item) => item.id === state.editingNoteId);
+    if (!note) return;
+    const ok = await showConfirm({ title: `删除“${note.title || '无标题笔记'}”`, message: '记事本删除后不可恢复，刷新页面可重置示例数据。', confirmText: '删除记事本' });
+    if (!ok) return;
+    state.notes = state.notes.filter((item) => item.id !== note.id);
+    state.editingNoteId = null;
+    $('#note-editor').hidden = true;
+    $('#note-browser').hidden = false;
+    renderNotes();
+    toast('记事本已删除');
   }
 
   function priorityLabel(priority) {
@@ -662,6 +786,7 @@
   }
 
   function saveReminder(event) {
+    if (event.submitter?.value === 'cancel') return; // 「取消」按钮与右上角 ×：直接关闭弹窗，不做校验
     event.preventDefault();
     const title = $('#reminder-title').value.trim();
     clearFieldErrors($('#reminder-form'));
@@ -715,7 +840,7 @@
       renderEntries();
     });
     $$('[data-open="space-create"]').forEach((button) => button.addEventListener('click', () => openSpaceDialog('create')));
-    $('[data-open="space-manage"]').addEventListener('click', () => openSpaceDialog('manage'));
+    $$('[data-open="space-manage"]').forEach((button) => button.addEventListener('click', () => openSpaceDialog('manage')));
     $('#space-form').addEventListener('submit', saveSpace);
     $('#space-manager-list').addEventListener('click', (event) => {
       const edit = event.target.closest('[data-space-edit]');
@@ -727,7 +852,7 @@
         const index = state.spaces.findIndex((item) => item.id === move.dataset.spaceMove);
         const target = move.dataset.direction === 'up' ? index - 1 : index + 1;
         if (target >= 0 && target < state.spaces.length) [state.spaces[index], state.spaces[target]] = [state.spaces[target], state.spaces[index]];
-        renderEntries(); renderSpaceManager();
+        renderEntries(); renderSpaceManager(); renderNotes();
       }
     });
 
@@ -775,6 +900,25 @@
     }));
     $('#entry-sort').addEventListener('change', (event) => { state.sort = event.target.value; renderEntries(); });
     $('[data-clear-filter]').addEventListener('click', () => { state.filter = 'all'; state.search = ''; $('#prompt-search').value = ''; $$('.filter-chip').forEach((node) => node.classList.toggle('active', node.dataset.filter === 'all')); renderEntries(); });
+
+    $('#note-space-list').addEventListener('click', (event) => {
+      const item = event.target.closest('[data-note-space]');
+      if (!item) return;
+      state.currentNoteSpace = item.dataset.noteSpace;
+      renderNotes();
+    });
+    $$('[data-open="note-create"]').forEach((button) => button.addEventListener('click', createNote));
+    $('#note-search').addEventListener('input', (event) => { state.noteSearch = event.target.value; renderNotes(); });
+    $('#note-sort').addEventListener('change', (event) => { state.noteSort = event.target.value; renderNotes(); });
+    $('#note-grid').addEventListener('click', (event) => {
+      const card = event.target.closest('[data-note-id]');
+      if (card) openNoteEditor(card.dataset.noteId);
+    });
+    $('[data-note-back]').addEventListener('click', closeNoteEditor);
+    $('#note-delete').addEventListener('click', deleteNote);
+    $('#note-title').addEventListener('input', noteDraftChanged);
+    $('#note-content').addEventListener('input', noteDraftChanged);
+
     document.addEventListener('keydown', (event) => {
       if (event.ctrlKey && event.key.toLowerCase() === 'k') { event.preventDefault(); showPage('prompts'); $('#prompt-search').focus(); }
       if (event.key === 'Escape' && $('#entry-drawer').classList.contains('open')) closeEntryDrawer();
@@ -846,6 +990,11 @@
     });
 
     $('#volume-input').addEventListener('input', (event) => { $('#volume-value').textContent = `${event.target.value}%`; setSavedState('音量已保存'); });
+    $('#default-page-setting').addEventListener('change', (event) => {
+      state.defaultPage = event.target.value;
+      showPage(state.defaultPage);
+      toast(`默认打开界面已设为「${state.defaultPage === 'notes' ? '记事本' : '提示词管理工具'}」`);
+    });
     $$('[data-setting]').forEach((input) => input.addEventListener('change', () => setSavedState('设置已保存')));
     $('#model-save').addEventListener('click', () => {
       const endpoint = $('#model-endpoint').value.trim();
@@ -871,11 +1020,16 @@
   function applyQueryState() {
     const params = new URLSearchParams(location.search);
     const page = params.get('page');
-    if (['prompts', 'schedule', 'settings'].includes(page)) showPage(page);
+    if (['prompts', 'notes', 'schedule', 'settings'].includes(page)) showPage(page);
     const view = params.get('view');
     if (page === 'schedule' && ['board', 'calendar', 'reminders'].includes(view)) showScheduleView(view);
     if (params.get('drawer') === '1') openEntryDrawer(state.entries[0].id);
     if (params.get('compose') === '1') openEntryDrawer();
+    const noteParam = params.get('note');
+    if (noteParam) {
+      const noteId = noteParam === '1' ? state.notes[0]?.id : noteParam;
+      if (noteId) openNoteEditor(noteId);
+    }
     if (['range', 'today', '1'].includes(params.get('task'))) openTaskDialog(null, params.get('task') === 'today' ? 'today' : 'range');
     if (params.get('picker') === '1') { $('#range-picker').hidden = false; renderRangePicker(); }
     if (params.get('reminder') === '1') openReminderDialog();
@@ -883,6 +1037,7 @@
   }
 
   renderEntries();
+  renderNotes();
   renderSchedule();
   bindEvents();
   applyQueryState();

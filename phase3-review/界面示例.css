@@ -77,6 +77,7 @@ body::after { width: 420px; height: 420px; right: -140px; top: -190px; border: 1
 .top-nav::after { content: ""; position: absolute; right: 150px; bottom: -1px; width: 280px; height: 30px; pointer-events: none; opacity: 0.13; background: url("../assets/ui-theme/firefly/ornaments/wing-ribbon.png") center / contain no-repeat; }
 .nav-item { position: relative; display: flex; align-items: center; gap: 8px; padding: 2px 23px 0; border: 0; color: #697781; background: transparent; font-size: 12px; font-weight: 700; }
 .nav-item::before { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 7px; color: #73848d; background: rgba(27, 52, 70, 0.055); font-size: 11px; }
+.nav-item.notes::before { content: "✎"; }
 .nav-item.prompts::before { content: "✦"; }
 .nav-item.schedule::before { content: "▦"; }
 .nav-item.settings::before { content: "⚙"; }
@@ -318,6 +319,8 @@ body::after { width: 420px; height: 420px; right: -140px; top: -190px; border: 1
 .range-control { display: flex; align-items: center; gap: 6px; }
 .range-control input { width: 75px; accent-color: #3b9e9d; }
 .range-control b { width: 29px; color: #367c80; font-size: 8px; }
+.setting-select { height: 30px; padding: 0 8px; border: 1px solid rgba(28, 49, 72, 0.15); border-radius: 8px; color: #2b4052; background: rgba(255, 255, 255, 0.94); outline: none; font-size: 9px; }
+.setting-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(84, 215, 215, 0.11); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 13px 15px; }
 .form-grid label, .field-grid label { display: grid; gap: 5px; color: #4e5e69; font-size: 8px; font-weight: 700; }
 .form-grid label.wide { grid-column: 1 / -1; }
@@ -454,6 +457,35 @@ input.error, textarea.error { border-color: var(--coral) !important; box-shadow:
 .toast span { color: var(--cyan); }
 .toast b { font-size: 8px; }
 
+/* ---- 记事本：板块卡片网格 ---- */
+.notes-toolbar { grid-template-columns: minmax(210px, 1fr) auto; }
+.note-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; align-items: start; padding-bottom: 8px; }
+.note-card { min-width: 0; height: 178px; display: flex; flex-direction: column; overflow: hidden; padding: 14px 15px 12px; border: 1px solid rgba(25, 49, 69, 0.11); border-radius: 14px; background: rgba(255, 254, 251, 0.94); box-shadow: 0 6px 18px rgba(11, 24, 45, 0.06); cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
+.note-card:hover, .note-card:focus { transform: translateY(-2px); outline: none; border-color: rgba(84, 215, 215, 0.6); box-shadow: 0 11px 24px rgba(11, 24, 45, 0.1), 0 0 0 3px rgba(84, 215, 215, 0.06); }
+.note-card-top { display: flex; align-items: center; justify-content: space-between; }
+.note-glyph { color: #3e9698; font-size: 13px; }
+.note-space-tag { padding: 3px 7px; border-radius: 999px; color: #5f7881; background: rgba(31, 55, 70, 0.06); font-size: 8px; }
+.note-card h3 { margin: 9px 0 6px; overflow: hidden; color: #20354a; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.note-excerpt { display: -webkit-box; overflow: hidden; margin: 0; color: #6c7e87; font-size: 9px; line-height: 1.7; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.note-card footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 9px; border-top: 1px dashed rgba(32, 65, 82, 0.1); color: #98a2a7; font-size: 8px; }
+.note-open-hint { color: #4c8e91; }
+
+/* ---- 记事本：类 Windows 记事本的编辑视图 ---- */
+.note-editor[hidden], .note-grid[hidden], #note-browser[hidden] { display: none; }
+.note-editor { height: 100%; display: flex; flex-direction: column; }
+.note-editor-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 2px 2px 10px; border-bottom: 1px solid var(--line); }
+.note-editor-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.note-editor-meta b { color: #4c8e91; font-size: 10px; }
+#note-save-state { display: inline-flex; align-items: center; gap: 5px; color: #8a979c; font-size: 8px; }
+#note-save-state i { width: 6px; height: 6px; border-radius: 50%; background: #57c9b6; transition: background 150ms ease; }
+#note-save-state.saving i { background: #e6b354; animation: note-save-pulse 800ms ease infinite; }
+@keyframes note-save-pulse { 50% { opacity: 0.25; } }
+.note-editor-body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; padding: 22px 26px; border: 1px solid rgba(25, 49, 69, 0.1); border-radius: 14px; background: rgba(255, 254, 251, 0.95); box-shadow: 0 6px 18px rgba(11, 24, 45, 0.05); }
+.note-title-input { padding: 4px 0 12px; border: 0; border-bottom: 1px dashed rgba(32, 65, 82, 0.14); outline: 0; color: #20354a; background: transparent; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.note-title-input::placeholder { color: #b6c0c4; font-weight: 600; }
+.note-content-input { flex: 1; min-height: 0; margin-top: 14px; padding: 4px 2px; border: 0; outline: 0; resize: none; color: #33485a; background: transparent; font: 13px/1.85 Consolas, "Cascadia Mono", "JetBrains Mono", "Microsoft YaHei", monospace; }
+.note-content-input::placeholder { color: #b6c0c4; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+
 /* 可读性基线：评审稿不再用 6–8px 压缩信息，最小辅助文字提升到 9px。 */
 body { font-size: 14px; }
 .prototype-note { font-size: 11px; }
@@ -490,6 +522,7 @@ body { font-size: 14px; }
 .settings-card h2 { font-size: 14px; }
 .setting-row strong, .range-control b, .form-grid label, .field-grid label, .field, .task-range-field { font-size: 11px; }
 .form-grid input, .form-grid select, .form-grid textarea, .field input, .field select, .field textarea, .field-grid input, .field-grid select { font-size: 11px; }
+.setting-select { font-size: 11px; }
 .app-footer b, .drawer-mode, .modal h2, .check-row strong, .manager-row strong, .confirm-modal .modal-body > p { font-size: 11px; }
 .app-footer small, .entry-drawer > header b, .drawer-cover small, .drawer-cover span, .cover-upload, .drawer-options, .modal header p, .check-row small, .prototype-boundary, .manager-title, .manager-title small, .manager-row small, .row-actions button, .toast b { font-size: 9px; }
 .range-point b { font-size: 12px; }
@@ -499,11 +532,18 @@ body { font-size: 14px; }
 .range-picker-day { font-size: 11px; }
 .range-picker > header strong { font-size: 13px; }
 .range-picker > footer span { font-size: 9px; }
+.note-card h3 { font-size: 14px; }
+.note-excerpt, .note-card footer, .note-space-tag { font-size: 10px; }
+.note-editor-meta b { font-size: 11px; }
+#note-save-state { font-size: 10px; }
+.note-title-input { font-size: 24px; }
+.note-content-input { font: 14px/1.85 Consolas, "Cascadia Mono", "JetBrains Mono", "Microsoft YaHei", monospace; }
 
 @media (max-width: 1080px) {
   .space-sidebar { width: 188px; flex-basis: 188px; }
   .workspace, .full-workspace, .settings-workspace { padding-left: 18px; padding-right: 18px; }
   .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .note-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-grid { grid-template-columns: 0.9fr 1.1fr; }
   .nav-item { padding-left: 16px; padding-right: 16px; }
   .compact-search { width: 126px; }
@@ -522,6 +562,7 @@ body { font-size: 14px; }
   .task-list { min-height: 305px; }
   .sidebar-tip { display: none; }
   .prompt-card.featured { height: 293px; }
+  .note-card { height: 164px; }
   .cover { height: 91px; flex-basis: 91px; }
   .setting-row { min-height: 48px; }
   .settings-card > header { padding-top: 10px; padding-bottom: 10px; }

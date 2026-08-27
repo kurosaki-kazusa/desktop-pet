@@ -24,11 +24,63 @@
     </header>
 
     <nav class="top-nav" aria-label="主导航">
+      <button type="button" class="nav-item notes" data-page="notes">记事本</button>
       <button type="button" class="nav-item prompts active" data-page="prompts">提示词管理工具</button>
       <button type="button" class="nav-item schedule" data-page="schedule">日程管理</button>
       <button type="button" class="nav-item settings" data-page="settings">设置</button>
       <div class="nav-meta"><span class="status-dot"></span>工作台已就绪</div>
     </nav>
+
+    <section class="page" id="page-notes">
+      <aside class="space-sidebar">
+        <div class="sidebar-heading">
+          <div><span class="eyebrow">NOTEBOOKS</span><h2>记事空间</h2></div>
+          <button type="button" class="icon-button" data-open="space-create" title="新建空间" aria-label="新建空间">＋</button>
+        </div>
+        <div class="space-list" id="note-space-list"></div>
+        <div class="sidebar-tip">
+          <img src="../assets/ui-theme/firefly/ornaments/wing-ribbon.png" alt="">
+          <div><strong>随手记录</strong><p>灵感与想法无需配置，一键开写。</p></div>
+        </div>
+        <button type="button" class="sidebar-action" data-open="space-manage">管理项目空间</button>
+      </aside>
+
+      <div class="workspace notes-workspace">
+        <div id="note-browser">
+          <header class="content-header">
+            <div>
+              <div class="breadcrumb">记事本 <span>/</span> <b id="current-note-space">全部笔记</b></div>
+              <h1 id="note-workspace-title">全部笔记</h1>
+              <p id="note-workspace-description">无需配置，一键新建；打开即写，内容自动保存。</p>
+            </div>
+            <button type="button" class="primary-button" data-open="note-create"><span>＋</span>新建内容</button>
+          </header>
+
+          <div class="toolbar notes-toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="note-search" type="search" placeholder="搜索记事本标题或内容"></label>
+            <label class="sort-control"><span>排序</span><select id="note-sort"><option value="updated">最近更新</option><option value="title">标题 A–Z</option></select></label>
+          </div>
+
+          <div class="result-line"><span><b id="note-count">0</b> 条笔记</span><span id="note-result-hint">点击板块直接打开记事本，编辑内容即时自动保存</span></div>
+          <div class="note-grid" id="note-grid"></div>
+          <div class="empty-state" id="note-empty" hidden>
+            <span>✎</span><h3>还没有记事本</h3><p>点击右上角「新建内容」，无需任何配置即可开始记录。</p><button type="button" class="ghost-button" data-open="note-create">新建记事本</button>
+          </div>
+        </div>
+
+        <div class="note-editor" id="note-editor" hidden>
+          <header class="note-editor-header">
+            <button type="button" class="ghost-button" data-note-back>‹ 返回列表</button>
+            <div class="note-editor-meta"><b id="note-editor-space">未分类</b><span id="note-save-state"><i></i>内容自动保存</span></div>
+            <button type="button" class="danger-text" id="note-delete">删除记事本</button>
+          </header>
+          <div class="note-editor-body">
+            <input id="note-title" class="note-title-input" maxlength="60" placeholder="无标题笔记">
+            <textarea id="note-content" class="note-content-input" placeholder="在这里记录此刻的灵感与想法…" spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="page active" id="page-prompts">
       <aside class="space-sidebar">
@@ -139,6 +191,7 @@
         <div class="settings-grid">
           <section class="settings-card general-settings">
             <header><span class="settings-icon cyan">⚙</span><div><h2>通用设置</h2><p>演示状态仅在当前页面生效</p></div></header>
+            <div class="setting-row"><div><strong>默认打开界面</strong><p>启动工作台时首先显示的页面</p></div><select class="setting-select" id="default-page-setting"><option value="notes">记事本</option><option value="prompts" selected>提示词管理工具</option></select></div>
             <div class="setting-row"><div><strong>工作台始终置顶</strong><p>让此工作台保持在其他窗口上方</p></div><label class="switch"><input type="checkbox" data-setting="alwaysOnTop" checked><i></i></label></div>
             <div class="setting-row"><div><strong>开机时启动应用</strong><p>登录 Windows 后自动运行</p></div><label class="switch"><input type="checkbox" data-setting="launchAtLogin"><i></i></label></div>
             <div class="setting-row"><div><strong>提醒音量</strong><p>控制日程提醒的提示音量</p></div><div class="range-control"><input id="volume-input" type="range" min="0" max="100" value="72"><b id="volume-value">72%</b></div></div>
@@ -150,7 +203,7 @@
             <header><span class="settings-icon gold">✦</span><div><h2>大模型配置</h2><p><span class="status-dot"></span>配置完整 · 等待正式接入</p></div></header>
             <div class="form-grid">
               <label><span>API Key</span><div class="secure-input"><input id="model-key" type="password" value="configured" readonly><b>已配置</b></div><small>高保真原型不会读取或保存真实密钥</small></label>
-              <label><span>模型</span><select id="model-name"><option>deepseek-chat</option><option>deepseek-reasoner</option></select></label>
+              <label><span>模型</span><select id="model-name"><option>deepseek-chat</option><option>deepseek-reasoner</option></select><small>用于对话生成的模型</small></label>
               <label class="wide"><span>接口地址</span><input id="model-endpoint" value="https://api.deepseek.com" spellcheck="false"><small class="field-message" id="endpoint-message">使用兼容 OpenAI 的 API 地址</small></label>
               <label class="wide"><span>助手人设</span><textarea id="model-persona">你是流萤，一位温柔、简洁、善于整理创作思路的桌面助手。</textarea></label>
             </div>

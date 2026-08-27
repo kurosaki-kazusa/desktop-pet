@@ -15,6 +15,8 @@ const outputDir = path.join(__dirname, 'screenshots');
 
 const screens = [
   ['01-提示词管理.png', 'page=prompts', 1280, 820],
+  ['01B-记事本列表.png', 'page=notes', 1280, 820],
+  ['01C-记事本编辑器.png', 'page=notes&note=1', 1280, 820],
   ['02-新建内容抽屉.png', 'page=prompts&compose=1', 1280, 820],
   ['03-内容详情编辑.png', 'page=prompts&drawer=1', 1280, 820],
   ['04-长期待办与今日事项.png', 'page=schedule&view=board', 1280, 820],
@@ -41,13 +43,66 @@ async function runInteractionQA(win) {
     resourceLoaded: Boolean(document.querySelector('.app-mark')?.naturalWidth),
     baseFont: parseFloat(getComputedStyle(document.body).fontSize)
   }))()`);
-  assert(JSON.stringify(shell.nav) === JSON.stringify(['提示词管理工具', '日程管理', '设置']), `顶部导航不符合要求：${JSON.stringify(shell.nav)}`);
+  assert(JSON.stringify(shell.nav) === JSON.stringify(['记事本', '提示词管理工具', '日程管理', '设置']), `顶部导航不符合要求：${JSON.stringify(shell.nav)}`);
   assert(shell.windowOnly, '窗口原型中不应包含桌宠部分');
   assert(shell.initialEntries >= 6, '提示词案例数量不足');
   assert(shell.resourceLoaded, '主题标识资源未正确加载');
   assert(shell.baseFont >= 14, `整体字体仍然偏小：${shell.baseFont}px`);
   console.log('QA checkpoint: shell');
 
+  await win.loadURL(`${htmlUrl}?page=notes`);
+  const notesFlow = await win.webContents.executeJavaScript(`(async () => {
+    const pause = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
+    const waitUntil = async (predicate) => { for (let i = 0; i < 20; i += 1) { if (predicate()) return true; await pause(40); } return false; };
+    const cardCountBefore = document.querySelectorAll('.note-card').length;
+    const sidebarRendered = document.querySelectorAll('#note-space-list .space-item').length >= 2;
+    const editorHiddenInList = getComputedStyle(document.querySelector('#note-editor')).display === 'none'
+      && getComputedStyle(document.querySelector('#note-browser')).display !== 'none';
+    document.querySelector('[data-open="note-create"]').click();
+    await pause();
+    const createdOpened = !document.querySelector('#note-editor').hidden
+      && getComputedStyle(document.querySelector('#note-editor')).display !== 'none'
+      && document.querySelector('#note-browser').hidden
+      && getComputedStyle(document.querySelector('#note-browser')).display === 'none'
+      && document.querySelector('#note-title').value === ''
+      && document.querySelector('#note-content').value === '';
+    document.querySelector('#note-title').value = '灵感：萤光笔记本';
+    document.querySelector('#note-title').dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#note-content').value = '记录此刻的想法，无需任何配置。';
+    document.querySelector('#note-content').dispatchEvent(new Event('input', { bubbles: true }));
+    await waitUntil(() => !document.querySelector('#note-save-state').classList.contains('saving'));
+    const autoSaved = !document.querySelector('#note-save-state').classList.contains('saving');
+    document.querySelector('[data-note-back]').click();
+    await pause();
+    const backToList = !document.querySelector('#note-browser').hidden
+      && getComputedStyle(document.querySelector('#note-browser')).display !== 'none'
+      && document.querySelector('#note-editor').hidden
+      && getComputedStyle(document.querySelector('#note-editor')).display === 'none';
+    const newCard = [...document.querySelectorAll('.note-card h3')].some((node) => node.textContent === '灵感：萤光笔记本');
+    const cardCountAfter = document.querySelectorAll('.note-card').length;
+    const createdCard = [...document.querySelectorAll('.note-card')].find((node) => node.querySelector('h3')?.textContent === '灵感：萤光笔记本');
+    createdCard.click();
+    await pause();
+    const reopened = !document.querySelector('#note-editor').hidden
+      && getComputedStyle(document.querySelector('#note-editor')).display !== 'none'
+      && document.querySelector('#note-content').value === '记录此刻的想法，无需任何配置。';
+    document.querySelector('#note-delete').click();
+    await pause();
+    document.querySelector('#confirm-primary').click();
+    await waitUntil(() => ![...document.querySelectorAll('.note-card h3')].some((node) => node.textContent === '灵感：萤光笔记本'));
+    const deleted = ![...document.querySelectorAll('.note-card h3')].some((node) => node.textContent === '灵感：萤光笔记本');
+    return { cardCountBefore, cardCountAfter, sidebarRendered, editorHiddenInList, createdOpened, autoSaved, backToList, newCard, reopened, deleted };
+  })()`);
+  assert(notesFlow.sidebarRendered, `记事本空间侧栏未渲染：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.editorHiddenInList, `列表页编辑器未视觉隐藏：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.createdOpened, `新建记事本未直接进入编辑态：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.autoSaved, `自动保存状态未恢复：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.backToList && notesFlow.newCard && notesFlow.cardCountAfter === notesFlow.cardCountBefore + 1, `新建记事本未出现在列表：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.reopened, `重新打开记事本内容未保留：${JSON.stringify(notesFlow)}`);
+  assert(notesFlow.deleted, `删除记事本失败：${JSON.stringify(notesFlow)}`);
+  console.log('QA checkpoint: notes flow');
+
+  await win.loadURL(`${htmlUrl}?page=prompts`);
   const promptFlow = await win.webContents.executeJavaScript(`(async () => {
     const click = (selector) => document.querySelector(selector)?.click();
     const waitUntil = async (predicate) => { for (let i = 0; i < 20; i += 1) { if (predicate()) return true; await new Promise((resolve) => setTimeout(resolve, 40)); } return false; };
@@ -114,7 +169,7 @@ async function runInteractionQA(win) {
 
   const lastSpaceGuard = await win.webContents.executeJavaScript(`(async () => {
     const pause = () => new Promise((resolve) => setTimeout(resolve, 80));
-    while (document.querySelectorAll('.space-item:not(.system)').length > 1) {
+    while (document.querySelectorAll('#space-list .space-item:not(.system)').length > 1) {
       document.querySelector('[data-open="space-manage"]').click();
       const remove = document.querySelector('[data-space-delete]:not(:disabled)');
       remove.click();
@@ -126,7 +181,7 @@ async function runInteractionQA(win) {
     const lastDelete = document.querySelector('[data-space-delete]');
     const guarded = lastDelete?.disabled && lastDelete?.title.includes('至少保留一个');
     document.querySelector('#space-dialog').close();
-    return { spaces: document.querySelectorAll('.space-item:not(.system)').length, guarded };
+    return { spaces: document.querySelectorAll('#space-list .space-item:not(.system)').length, guarded };
   })()`);
   assert(lastSpaceGuard.spaces === 1 && lastSpaceGuard.guarded, `最后空间删除保护失败：${JSON.stringify(lastSpaceGuard)}`);
   console.log('QA checkpoint: space guard');
@@ -258,17 +313,39 @@ async function runInteractionQA(win) {
     const invalidBlocked = document.querySelector('#model-endpoint').classList.contains('error');
     document.querySelector('#model-endpoint').value = 'https://api.deepseek.com';
     document.querySelector('#model-save').click();
+    const modelRowAligned = (() => {
+      const labels = document.querySelectorAll('.form-grid > label');
+      const a = labels[0].getBoundingClientRect();
+      const b = labels[1].getBoundingClientRect();
+      return Math.abs(a.top - b.top) < 1 && Math.abs(a.height - b.height) < 1;
+    })();
+    const defaultSelect = document.querySelector('#default-page-setting');
+    const defaultOptions = JSON.stringify([...defaultSelect.options].map((option) => [option.value, option.textContent]));
+    const initialDefault = defaultSelect.value;
+    defaultSelect.value = 'notes';
+    defaultSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    const defaultPageSwitched = document.querySelector('#page-notes').classList.contains('active') && !document.querySelector('#page-prompts').classList.contains('active');
+    const toastShown = document.querySelector('#toast-message')?.textContent.includes('记事本');
+    document.querySelector('[data-page="settings"]').click();
     return {
       volume: document.querySelector('#volume-value')?.textContent,
       state: document.querySelector('#save-state')?.textContent,
       noSubnav: !document.querySelector('#page-settings .tabs, #page-settings [role="tablist"]'),
-      invalidBlocked
+      invalidBlocked,
+      modelRowAligned,
+      defaultOptions,
+      initialDefault,
+      defaultPageSwitched,
+      toastShown
     };
   })()`);
   assert(settingsFlow.volume === '35%', `音量反馈错误：${JSON.stringify(settingsFlow)}`);
   assert(settingsFlow.state.includes('已保存') && settingsFlow.noSubnav && settingsFlow.invalidBlocked, `设置页结构或反馈错误：${JSON.stringify(settingsFlow)}`);
+  assert(settingsFlow.defaultOptions === JSON.stringify([['notes', '记事本'], ['prompts', '提示词管理工具']]) && settingsFlow.initialDefault === 'prompts', `默认打开界面选项不正确：${JSON.stringify(settingsFlow)}`);
+  assert(settingsFlow.defaultPageSwitched && settingsFlow.toastShown, `默认打开界面切换演示失败：${JSON.stringify(settingsFlow)}`);
+  assert(settingsFlow.modelRowAligned, `大模型配置首行两列未对齐：${JSON.stringify(settingsFlow)}`);
 
-  return { shell, promptFlow, scheduleFlow, settingsFlow };
+  return { shell, notesFlow, promptFlow, scheduleFlow, settingsFlow };
 }
 
 async function captureScreens(win) {
