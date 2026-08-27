@@ -298,6 +298,7 @@
   }
 
   function saveSpace(event) {
+    if (event.submitter?.value === 'cancel') return; // 「确认」按钮与右上角 ×：直接关闭弹窗，不做校验
     event.preventDefault();
     const dialog = $('#space-dialog');
     const name = $('#space-name').value.trim();
