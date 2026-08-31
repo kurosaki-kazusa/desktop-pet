@@ -4,7 +4,7 @@
 
 const { ipcMain, BrowserWindow, clipboard, nativeImage } = require('electron');
 const path = require('path');
-const { DEFAULT_SPACE_ID } = require('./storage');
+const { DEFAULT_SPACE_ID, DEFAULT_NOTE_SPACE_ID } = require('./storage');
 const { dayNumber, isIsoDate } = require('../task-rules');
 
 const SPACE_NAME_MAX = 16;
@@ -41,6 +41,21 @@ function getEntries(store) {
   return Array.isArray(raw) ? raw : [];
 }
 
+function getNoteSpaces(store) {
+  const raw = store.get('noteSpaces');
+  const spaces = (Array.isArray(raw) ? raw : []).filter((s) => s && typeof s.id === 'string' && s.id);
+  return spaces
+    .map((s, i) => ({ ...s, order: Number(s.order) || i }))
+    .sort((a, b) => a.order - b.order);
+}
+
+function spaceContext(store, data) {
+  const note = data && data.scope === 'notes';
+  return note
+    ? { scope: 'notes', key: 'noteSpaces', spaces: getNoteSpaces(store), items: getNotes(store), defaultId: DEFAULT_NOTE_SPACE_ID }
+    : { scope: 'prompts', key: 'spaces', spaces: getSpaces(store), items: getEntries(store), defaultId: DEFAULT_SPACE_ID };
+}
+
 function getNotes(store) {
   const raw = store.get('notes');
   return Array.isArray(raw) ? raw : [];
@@ -58,7 +73,11 @@ function getReminders(store) {
 
 function snapshot(store) {
   // defaultSpaceId：渲染层据此识别默认空间（默认空间禁删，非空删除时作为迁移目标）
-  return { spaces: getSpaces(store), entries: getEntries(store), notes: getNotes(store), tasks: getTasks(store), reminders: getReminders(store), defaultSpaceId: DEFAULT_SPACE_ID };
+  return {
+    spaces: getSpaces(store), noteSpaces: getNoteSpaces(store),
+    entries: getEntries(store), notes: getNotes(store), tasks: getTasks(store), reminders: getReminders(store),
+    defaultSpaceId: DEFAULT_SPACE_ID, defaultNoteSpaceId: DEFAULT_NOTE_SPACE_ID
+  };
 }
 
 // 数据变更广播（排除发起者；宠物窗口 command:* 数据源同为 entries，需同步刷新）
@@ -174,32 +193,35 @@ function init(store, options = {}) {
 
   // ---------- 空间管理 ----------
   ipcMain.handle('space:create', (e, data) => {
-    const spaces = getSpaces(store);
+    const ctx = spaceContext(store, data);
+    const spaces = ctx.spaces;
     const name = String((data && data.name) || '').trim();
     const problem = checkSpaceName(spaces, name);
     if (problem) return { ok: false, error: problem };
     const order = spaces.reduce((m, s) => Math.max(m, s.order), -1) + 1;
-    store.set('spaces', [...spaces, { id: uid('space'), name, order, createdAt: Date.now() }]);
+    store.set(ctx.key, [...spaces, { id: uid(ctx.scope === 'notes' ? 'note-space' : 'space'), name, order, createdAt: Date.now() }]);
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
   });
 
   ipcMain.handle('space:rename', (e, data) => {
-    const spaces = getSpaces(store);
+    const ctx = spaceContext(store, data);
+    const spaces = ctx.spaces;
     const id = String((data && data.id) || '');
     const target = spaces.find((s) => s.id === id);
     if (!target) return { ok: false, error: '空间不存在' };
     const name = String((data && data.name) || '').trim();
     const problem = checkSpaceName(spaces, name, id);
     if (problem) return { ok: false, error: problem };
-    store.set('spaces', spaces.map((s) => (s.id === id ? { ...s, name } : s)));
+    store.set(ctx.key, spaces.map((s) => (s.id === id ? { ...s, name } : s)));
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
   });
 
   // 拖动排序以 ↑/↓ 按钮承载（与原型一致）：与相邻空间交换位置后统一重写 order
   ipcMain.handle('space:move', (e, data) => {
-    const spaces = getSpaces(store);
+    const ctx = spaceContext(store, data);
+    const spaces = ctx.spaces;
     const id = String((data && data.id) || '');
     const dir = data && data.direction === 'down' ? 1 : -1;
     const index = spaces.findIndex((s) => s.id === id);
@@ -208,38 +230,36 @@ function init(store, options = {}) {
     if (target < 0 || target >= spaces.length) return { ok: true, ...snapshot(store) };
     const next = spaces.slice();
     [next[index], next[target]] = [next[target], next[index]];
-    store.set('spaces', next.map((s, i) => ({ ...s, order: i })));
+    store.set(ctx.key, next.map((s, i) => ({ ...s, order: i })));
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
   });
 
   // 删除空间：空空间直接删；非空必须选择 strategy（migrate=内容迁移到默认空间 / purge=一并删除）
   ipcMain.handle('space:delete', (e, data) => {
-    const spaces = getSpaces(store);
-    const entries = getEntries(store);
-    const notes = getNotes(store);
+    const ctx = spaceContext(store, data);
+    const spaces = ctx.spaces;
+    const items = ctx.items;
     const id = String((data && data.id) || '');
-    if (id === DEFAULT_SPACE_ID) {
+    if (id === ctx.defaultId) {
       return { ok: false, error: '默认空间不可删除（其他空间删除时内容会迁移到这里）' };
     }
     if (!spaces.some((s) => s.id === id)) return { ok: false, error: '空间不存在' };
     if (spaces.length <= 1) return { ok: false, error: '至少保留一个项目空间' };
-    const affected = entries.filter((en) => en.spaceId === id).length + notes.filter((note) => note.spaceId === id).length;
+    const affected = items.filter((item) => item.spaceId === id).length;
     if (affected > 0) {
       const strategy = data && data.strategy;
       if (strategy === 'purge') {
-        store.set('entries', entries.filter((en) => en.spaceId !== id));
-        store.set('notes', notes.filter((note) => note.spaceId !== id));
+        store.set(ctx.scope === 'notes' ? 'notes' : 'entries', items.filter((item) => item.spaceId !== id));
       } else if (strategy === 'migrate') {
         // 系统性搬移不改 updatedAt，避免影响「最近更新」排序语义
-        store.set('entries', entries.map((en) => (en.spaceId === id ? { ...en, spaceId: DEFAULT_SPACE_ID } : en)));
-        store.set('notes', notes.map((note) => (note.spaceId === id ? { ...note, spaceId: DEFAULT_SPACE_ID } : note)));
+        store.set(ctx.scope === 'notes' ? 'notes' : 'entries', items.map((item) => (item.spaceId === id ? { ...item, spaceId: ctx.defaultId } : item)));
       } else {
         return { ok: false, error: '该空间内还有内容，请选择迁移或一并删除' };
       }
     }
     const rest = spaces.filter((s) => s.id !== id);
-    store.set('spaces', rest.map((s, i) => ({ ...s, order: i })));
+    store.set(ctx.key, rest.map((s, i) => ({ ...s, order: i })));
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
   });
@@ -304,7 +324,7 @@ function init(store, options = {}) {
 
   // ---------- P3-M4：记事本（零配置创建、即时自动保存、删除） ----------
   ipcMain.handle('note:create', (e, data) => {
-    const spaces = getSpaces(store);
+    const spaces = getNoteSpaces(store);
     if (spaces.length === 0) return { ok: false, error: '请先创建项目空间' };
     const requestedSpaceId = String((data && data.spaceId) || '');
     const spaceId = spaces.some((s) => s.id === requestedSpaceId) ? requestedSpaceId : spaces[0].id;

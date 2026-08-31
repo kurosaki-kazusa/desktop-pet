@@ -90,6 +90,7 @@ api.onWorkspaceWinState((d) => {
 // ---------- P3-M2：提示词管理页状态 ----------
 const state = {
   spaces: [],
+  noteSpaces: [],
   entries: [],
   notes: [],
   tasks: [],
@@ -99,6 +100,7 @@ const state = {
   dataPath: '',
   version: '',
   defaultSpaceId: '',
+  defaultNoteSpaceId: '',
   spaceId: null, // null = 全部内容
   filter: 'all', // all | prompt | command
   sort: 'pinned', // pinned | updated | title
@@ -121,13 +123,15 @@ async function reload() {
 // 应用最新数据（拉取与 CRUD 响应共用）：当前空间被删时回退到「全部内容」
 function applyData(data) {
   state.spaces = (data && data.spaces) || [];
+  state.noteSpaces = (data && data.noteSpaces) || [];
   state.entries = (data && data.entries) || [];
   state.notes = (data && data.notes) || [];
   state.tasks = (data && data.tasks) || [];
   state.reminders = (data && data.reminders) || [];
   state.defaultSpaceId = (data && data.defaultSpaceId) || '';
+  state.defaultNoteSpaceId = (data && data.defaultNoteSpaceId) || '';
   if (state.spaceId && !state.spaces.some((s) => s.id === state.spaceId)) state.spaceId = null;
-  if (state.noteSpaceId && !state.spaces.some((s) => s.id === state.noteSpaceId)) state.noteSpaceId = null;
+  if (state.noteSpaceId && !state.noteSpaces.some((s) => s.id === state.noteSpaceId)) state.noteSpaceId = null;
   render();
 }
 
@@ -158,10 +162,6 @@ async function loadWorkspaceSettings() {
 
 function noteCountIn(spaceId) {
   return state.notes.filter((note) => note && note.spaceId === spaceId).length;
-}
-
-function totalCountIn(spaceId) {
-  return countIn(spaceId) + noteCountIn(spaceId);
 }
 
 // ---------- P3-M2：渲染 ----------
@@ -524,7 +524,7 @@ function renderNoteSpaces() {
   const list = $('#note-space-list');
   list.textContent = '';
   list.appendChild(noteSpaceItem(null, '全部笔记', state.notes.length));
-  state.spaces.forEach((space, index) => {
+  state.noteSpaces.forEach((space, index) => {
     list.appendChild(noteSpaceItem(space.id, space.name, noteCountIn(space.id), index));
   });
 }
@@ -557,7 +557,7 @@ function visibleNotes() {
 
 function renderNotes() {
   const visible = visibleNotes();
-  const space = state.spaces.find((s) => s.id === state.noteSpaceId);
+  const space = state.noteSpaces.find((s) => s.id === state.noteSpaceId);
   const name = space ? space.name : '全部笔记';
   $('#current-note-space').textContent = name;
   $('#note-workspace-title').textContent = name;
@@ -579,7 +579,7 @@ function renderNotes() {
 }
 
 function noteCard(note) {
-  const space = state.spaces.find((s) => s.id === note.spaceId);
+  const space = state.noteSpaces.find((s) => s.id === note.spaceId);
   return el('article', {
     class: 'note-card', tabindex: '0', role: 'button',
     'aria-label': `打开 ${note.title || '无标题笔记'}`,
@@ -613,7 +613,7 @@ function openNoteEditor(id) {
   editingNoteId = note.id;
   noteSavePending = false;
   if (noteSaveTimer) clearTimeout(noteSaveTimer);
-  const space = state.spaces.find((s) => s.id === note.spaceId);
+  const space = state.noteSpaces.find((s) => s.id === note.spaceId);
   $('#note-editor-space').textContent = space ? space.name : '未分类';
   $('#note-title').value = note.title || '';
   $('#note-content').value = note.content || '';
@@ -668,7 +668,7 @@ async function closeNoteEditor() {
 }
 
 async function createNote() {
-  const res = await api.noteCreate(state.noteSpaceId || state.defaultSpaceId);
+  const res = await api.noteCreate(state.noteSpaceId || state.defaultNoteSpaceId);
   if (!handleResult(res)) return;
   openNoteEditor(res.noteId);
   showToast('已新建记事本，直接开始记录');
@@ -702,8 +702,8 @@ $('#note-title').addEventListener('input', noteDraftChanged);
 $('#note-content').addEventListener('input', noteDraftChanged);
 $('#note-search').addEventListener('input', (e) => { state.noteQ = e.target.value; renderNotes(); });
 $('#note-sort').addEventListener('change', (e) => { state.noteSort = e.target.value; renderNotes(); });
-$('#note-space-create-btn').addEventListener('click', () => openSpaceDialog('create'));
-$('#note-space-manage-btn').addEventListener('click', () => openSpaceDialog('manage'));
+$('#note-space-create-btn').addEventListener('click', () => openSpaceDialog('create', 'notes'));
+$('#note-space-manage-btn').addEventListener('click', () => openSpaceDialog('manage', 'notes'));
 
 // ---------- P3-M5：两列任务看板与日期区间映射 ----------
 let editingTaskId = null;
@@ -1206,11 +1206,14 @@ $('#setting-exit-app').addEventListener('click', async () => {
 // ---------- P3-M2：项目空间管理模态框 ----------
 let spaceDialogMode = 'create'; // create | manage
 let spaceRenameId = null;
+let spaceDialogScope = 'prompts'; // prompts | notes
 
-function openSpaceDialog(mode) {
+function openSpaceDialog(mode, scope = 'prompts') {
   spaceDialogMode = mode;
+  spaceDialogScope = scope;
   spaceRenameId = null;
-  $('#space-dialog-title').textContent = mode === 'create' ? '新建项目空间' : '管理项目空间';
+  const label = scope === 'notes' ? '记事空间' : '提示词空间';
+  $('#space-dialog-title').textContent = `${mode === 'create' ? '新建' : '管理'}${label}`;
   $('#space-name').value = '';
   clearFieldError('space-name');
   $('#space-save').textContent = mode === 'create' ? '保存空间' : '确认重命名';
@@ -1219,24 +1222,25 @@ function openSpaceDialog(mode) {
   $('#space-dialog').showModal();
 }
 
-$('#space-create-btn').addEventListener('click', () => openSpaceDialog('create'));
-$('#space-manage-btn').addEventListener('click', () => openSpaceDialog('manage'));
+$('#space-create-btn').addEventListener('click', () => openSpaceDialog('create', 'prompts'));
+$('#space-manage-btn').addEventListener('click', () => openSpaceDialog('manage', 'prompts'));
 $('#space-name').addEventListener('input', () => clearFieldError('space-name'));
 
 // 管理模式列表：每个空间一行（图标 + 名称/数量 + 上移/下移/重命名/删除）
 function renderSpaceManager() {
   const list = $('#space-manager-list');
   list.textContent = '';
-  state.spaces.forEach((s, i) => {
-    const entryCount = countIn(s.id);
-    const notesCount = noteCountIn(s.id);
-    const count = totalCountIn(s.id);
-    const isDefault = s.id === state.defaultSpaceId;
+  const isNotes = spaceDialogScope === 'notes';
+  const spaces = isNotes ? state.noteSpaces : state.spaces;
+  const defaultId = isNotes ? state.defaultNoteSpaceId : state.defaultSpaceId;
+  spaces.forEach((s, i) => {
+    const count = isNotes ? noteCountIn(s.id) : countIn(s.id);
+    const isDefault = s.id === defaultId;
     list.appendChild(el('div', { class: 'manager-row' }, [
       el('span', { class: `space-glyph ${GLYPHS[(i + 1) % GLYPHS.length]}`, text: s.name.trim().charAt(0) || '·' }),
       el('div', null, [
         el('strong', { text: s.name }),
-        el('small', { text: `${isDefault ? '默认空间 · ' : ''}${entryCount} 条内容 · ${notesCount} 条笔记` })
+        el('small', { text: `${isDefault ? '默认空间 · ' : ''}${count} 条${isNotes ? '笔记' : '内容'}` })
       ]),
       el('div', { class: 'row-actions' }, [
         el('button', {
@@ -1246,7 +1250,7 @@ function renderSpaceManager() {
         }),
         el('button', {
           type: 'button', text: '↓', title: '下移',
-          disabled: i === state.spaces.length - 1 ? '' : null,
+          disabled: i === spaces.length - 1 ? '' : null,
           onclick: () => moveSpace(s.id, 'down')
         }),
         el('button', {
@@ -1266,19 +1270,20 @@ function renderSpaceManager() {
       ])
     ]));
   });
-  if (state.spaces.length === 0) {
+  if (spaces.length === 0) {
     list.appendChild(el('p', { text: '暂无空间', style: 'color:#939ca1;font-size:11px;margin:6px 0' }));
   }
 }
 
 async function moveSpace(id, direction) {
-  const res = await api.spaceMove(id, direction);
+  const res = await api.spaceMove(id, direction, spaceDialogScope);
   if (handleResult(res)) renderSpaceManager();
 }
 
 // 删除空间两分支：空空间直接确认删除；非空选择「迁移到默认空间」或「一并删除」
 async function deleteSpaceFlow(space, count) {
-  if (space.id === state.defaultSpaceId) { showToast('默认空间不可删除'); return; }
+  const defaultId = spaceDialogScope === 'notes' ? state.defaultNoteSpaceId : state.defaultSpaceId;
+  if (space.id === defaultId) { showToast('默认空间不可删除'); return; }
   if (count === 0) {
     const answer = await confirmDialog({
       title: '删除项目空间',
@@ -1287,7 +1292,7 @@ async function deleteSpaceFlow(space, count) {
       actions: [{ label: '删除空间', kind: 'danger', value: 'ok' }]
     });
     if (answer !== 'ok') return;
-    const res = await api.spaceDelete(space.id);
+    const res = await api.spaceDelete(space.id, undefined, spaceDialogScope);
     if (handleResult(res)) { showToast('空间已删除'); renderSpaceManager(); }
     return;
   }
@@ -1301,7 +1306,7 @@ async function deleteSpaceFlow(space, count) {
     ]
   });
   if (answer !== 'migrate' && answer !== 'purge') return;
-  const res = await api.spaceDelete(space.id, answer);
+  const res = await api.spaceDelete(space.id, answer, spaceDialogScope);
   if (handleResult(res)) {
     showToast(answer === 'migrate' ? '内容已迁移到默认空间' : '空间与内容已删除');
     renderSpaceManager();
@@ -1314,11 +1319,11 @@ $('#space-form').addEventListener('submit', async (e) => {
   const name = $('#space-name').value.trim();
   if (!name) { setFieldError('space-name', '请输入空间名称'); return; }
   if (spaceDialogMode === 'create') {
-    const res = await api.spaceCreate(name);
+    const res = await api.spaceCreate(name, spaceDialogScope);
     if (handleResult(res)) { $('#space-dialog').close(); showToast('空间已创建'); }
   } else {
     if (!spaceRenameId) { setFieldError('space-name', '请先点击列表中的「重命名」'); return; }
-    const res = await api.spaceRename(spaceRenameId, name);
+    const res = await api.spaceRename(spaceRenameId, name, spaceDialogScope);
     if (handleResult(res)) { $('#space-dialog').close(); showToast('空间已重命名'); }
   }
 });

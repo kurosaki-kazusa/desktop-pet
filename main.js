@@ -34,12 +34,12 @@ if (!store.get('posSchemaV2')) {
   store.set('posSchemaV2', true);
 }
 
-// ---------- P3-M0：schema v3 一次性迁移（旧 commands → entries） ----------
+// ---------- 数据迁移：旧 commands → entries；v4 拆分提示词/记事本空间 ----------
 // 备份 → 转换 → 校验 → 落盘 → 写 schemaVersion；失败回滚（不写版本号、不删旧字段），
-// 备份键 backupSchemaV2 保留供人工恢复。每次启动幂等执行（已是 v3 只补默认字段）。
+// 备份键 backupSchemaV2 保留供人工恢复。每次启动幂等执行（当前版本只补默认字段）。
 const migrationResult = storage.migrate(store);
 if (!migrationResult.ok) {
-  console.error('[storage] schema v3 迁移失败（旧数据已保留，可从 backupSchemaV2 恢复）：', migrationResult.error);
+  console.error('[storage] 数据迁移失败（旧数据已保留，可从 backupSchemaV2 恢复）：', migrationResult.error);
 }
 
 // ---------- 大模型会话引擎（v2.3：chat.js 流式后端，.env 填 DEEPSEEK_API_KEY 即用） ----------

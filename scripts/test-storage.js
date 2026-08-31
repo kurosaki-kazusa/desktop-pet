@@ -1,7 +1,7 @@
-// scripts/test-storage.js · main/storage.js schema v3 迁移单测（P3-M0）
+// scripts/test-storage.js · main/storage.js schema v4 迁移单测
 // 用法：npm run test:storage  或  node scripts/test-storage.js
 // 覆盖：旧 commands → entries（pinned/quick 保留、归入默认空间）、reminders 原样保留、
-//       settings 补默认值、失败不落盘不删旧字段（回滚）、幂等（已是 v3 只补默认）、
+//       settings 补默认值、失败不落盘不删旧字段（回滚）、v3→v4 空间拆分与 v4 幂等、
 //       旧命令 UI 映射辅助（commandsFromEntries/entryFromCommand/applyCommandToEntry）
 'use strict';
 
@@ -61,6 +61,8 @@ function main() {
     assert.strictEqual(d.spaces[0].id, S.DEFAULT_SPACE_ID);
     assert.strictEqual(d.spaces[0].name, '常用命令');
     assert.strictEqual(typeof d.spaces[0].createdAt, 'number');
+    assert.strictEqual(d.noteSpaces.length, 1);
+    assert.strictEqual(d.noteSpaces[0].id, S.DEFAULT_NOTE_SPACE_ID);
 
     // entries：全部旧命令转换，pinned 保留（quick=true 视为 pinned）、type=command、归入默认空间
     assert.strictEqual(d.entries.length, 3);
@@ -156,35 +158,60 @@ function main() {
     S.migrate(store);
     const d = store._data;
     assert.strictEqual(d.spaces, undefined, '迁移中途写入的 spaces 被回滚删除');
+    assert.strictEqual(d.noteSpaces, undefined, '迁移中途写入的 noteSpaces 被回滚删除');
     assert.strictEqual(d.entries, undefined, '迁移中途写入的 entries 被回滚删除');
     assert.strictEqual(d.notes, undefined, '迁移中途写入的 notes 被回滚删除');
     assert.strictEqual(d.tasks, undefined, '迁移中途写入的 tasks 被回滚删除');
     ok('回滚：迁移前不存在的新键被删除，不留半截数据');
   }
 
-  // ---------- 4. 幂等：已是 v3 只补默认字段 ----------
+  // ---------- 4. v3 → v4：共享空间拆分，空提示词空间不复制到记事本 ----------
   {
     const store = mockStore({
       schemaVersion: 3,
-      spaces: [{ id: 'space-commands', name: '常用命令', order: 0, createdAt: 1 }],
+      spaces: [
+        { id: 'space-commands', name: '常用命令', order: 0, createdAt: 1 },
+        { id: 'space-prompt-only', name: '提示词专用', order: 1, createdAt: 1 },
+        { id: 'space-with-note', name: '旧笔记空间', order: 2, createdAt: 1 }
+      ],
       entries: [{ id: 'e1', spaceId: 'space-commands', type: 'prompt', title: 't', content: 'c', coverId: null, pinned: false, createdAt: 1, updatedAt: 1 }],
+      notes: [{ id: 'n1', spaceId: 'space-with-note', title: 'n', content: 'c', createdAt: 1, updatedAt: 1 }],
       reminders: [{ id: 'r1', type: 'interval', intervalMin: 60, text: 'x', enabled: true }],
       settings: { volume: 0.3 }
     });
     const r = S.migrate(store);
     assert.strictEqual(r.ok, true);
-    assert.strictEqual(r.migrated, false);
-    assert.strictEqual(r.alreadyV3, true);
+    assert.strictEqual(r.migrated, true);
+    assert.strictEqual(r.fromVersion, 3);
     const d = store._data;
-    assert.strictEqual(d.notes.length, 0, '缺失的 notes 补空数组');
+    assert(d.spaces.some((space) => space.id === 'space-prompt-only'));
+    assert(!d.noteSpaces.some((space) => space.name === '提示词专用'), '提示词空空间不应复制进记事本');
+    const migratedNoteSpace = d.noteSpaces.find((space) => space.name === '旧笔记空间');
+    assert(migratedNoteSpace, '有笔记引用的旧空间应迁移');
+    assert.strictEqual(d.notes[0].spaceId, migratedNoteSpace.id);
     assert.strictEqual(d.tasks.length, 0, '缺失的 tasks 补空数组');
     assert.strictEqual(d.settings.volume, 0.3, '已有 settings 值不被覆盖');
     assert.strictEqual(d.settings.defaultPage, 'prompts', '缺失的三期字段补默认');
-    assert.strictEqual(d.backupSchemaV2, undefined, 'v3 不重复备份');
-    ok('幂等：schemaVersion>=3 只补默认字段，不重复迁移/备份');
+    assert.strictEqual(d.schemaVersion, S.SCHEMA_VERSION);
+    ok('v3 → v4：提示词与记事本空间拆分，已有笔记归属保留');
   }
 
-  // ---------- 5. 空数据全新安装（无旧命令） ----------
+  // ---------- 5. 幂等：已是 v4 只补默认字段 ----------
+  {
+    const store = mockStore({
+      schemaVersion: S.SCHEMA_VERSION,
+      spaces: [{ id: S.DEFAULT_SPACE_ID, name: '常用命令', order: 0, createdAt: 1 }],
+      noteSpaces: [{ id: S.DEFAULT_NOTE_SPACE_ID, name: '默认记事', order: 0, createdAt: 1 }],
+      entries: [], notes: [], tasks: [], reminders: [], settings: { volume: 0.2 }
+    });
+    const r = S.migrate(store);
+    assert.strictEqual(r.migrated, false);
+    assert.strictEqual(r.alreadyCurrent, true);
+    assert.strictEqual(store._data.settings.volume, 0.2);
+    ok('幂等：schemaVersion>=4 只补默认字段');
+  }
+
+  // ---------- 6. 空数据全新安装（无旧命令） ----------
   {
     const store = mockStore({});
     const r = S.migrate(store);
@@ -193,11 +220,12 @@ function main() {
     assert.strictEqual(r.entryCount, 0);
     assert.strictEqual(store._data.entries.length, 0);
     assert.strictEqual(store._data.spaces.length, 1);
-    assert.strictEqual(store._data.schemaVersion, 3);
+    assert.strictEqual(store._data.noteSpaces.length, 1);
+    assert.strictEqual(store._data.schemaVersion, S.SCHEMA_VERSION);
     ok('全新安装：空 commands 迁移为空 entries + 默认空间');
   }
 
-  // ---------- 6. 旧命令 UI 映射辅助（过渡期 command:* IPC 复用） ----------
+  // ---------- 7. 旧命令 UI 映射辅助（过渡期 command:* IPC 复用） ----------
   {
     const entries = [
       { id: 'e1', spaceId: 'space-commands', type: 'command', title: 'a', content: 'x', coverId: null, pinned: true, createdAt: 1, updatedAt: 1 },
@@ -224,7 +252,7 @@ function main() {
     ok('映射辅助：commandsFromEntries / entryFromCommand / applyCommandToEntry');
   }
 
-  // ---------- 7. mergeSettings 默认值完整性 ----------
+  // ---------- 8. mergeSettings 默认值完整性 ----------
   {
     const s = S.mergeSettings(undefined);
     assert.deepStrictEqual(s, S.SETTINGS_DEFAULTS);
@@ -232,7 +260,7 @@ function main() {
     ok('mergeSettings：空输入返回完整默认值');
   }
 
-  // ---------- 8. P3-M7 通用设置补丁校验 ----------
+  // ---------- 9. P3-M7 通用设置补丁校验 ----------
   {
     const r = S.normalizeSettingsPatch({ volume: 0.5, chat: { apiKey: 'secret' } }, { defaultPage: 'notes', volume: 0, reducedMotion: true });
     assert.strictEqual(r.error, undefined);

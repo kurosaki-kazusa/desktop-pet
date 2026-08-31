@@ -1,7 +1,7 @@
 // P3-M4~M6 内容数据层测试：纯内存 store + Electron API 桩，不读写真实用户数据。
 const assert = require('assert');
 const Module = require('module');
-const { DEFAULT_SPACE_ID } = require('../main/storage');
+const { DEFAULT_SPACE_ID, DEFAULT_NOTE_SPACE_ID } = require('../main/storage');
 const { isIsoDate, shouldMapRangeTask, isAbsoluteReminderDue } = require('../task-rules');
 
 class MemoryStore {
@@ -35,8 +35,12 @@ const store = new MemoryStore({
     { id: DEFAULT_SPACE_ID, name: '常用命令', order: 0, createdAt: now },
     { id: 'space-project', name: '课程', order: 1, createdAt: now }
   ],
+  noteSpaces: [
+    { id: DEFAULT_NOTE_SPACE_ID, name: '默认记事', order: 0, createdAt: now },
+    { id: 'note-space-project', name: '笔记课程', order: 1, createdAt: now }
+  ],
   entries: [{ id: 'entry-1', type: 'prompt', spaceId: 'space-project', title: '条目', content: '正文', createdAt: now, updatedAt: now }],
-  notes: [{ id: 'note-old', spaceId: 'space-project', title: '旧笔记', content: '内容', createdAt: now, updatedAt: now }],
+  notes: [{ id: 'note-old', spaceId: 'note-space-project', title: '旧笔记', content: '内容', createdAt: now, updatedAt: now }],
   tasks: [],
   reminders: []
 });
@@ -57,16 +61,26 @@ function ok(label, fn) {
 ok('workspace 快照包含 notes', () => {
   const data = call('workspace:get-data');
   assert.equal(data.notes.length, 1);
+  assert.equal(data.noteSpaces.length, 2);
+});
+
+ok('提示词与记事本空间创建互不影响', () => {
+  let res = call('space:create', { name: '仅提示词', scope: 'prompts' });
+  assert(res.spaces.some((item) => item.name === '仅提示词'));
+  assert(!res.noteSpaces.some((item) => item.name === '仅提示词'));
+  res = call('space:create', { name: '仅记事本', scope: 'notes' });
+  assert(res.noteSpaces.some((item) => item.name === '仅记事本'));
+  assert(!res.spaces.some((item) => item.name === '仅记事本'));
 });
 
 let createdId;
 ok('零配置创建空白记事本并归入指定空间', () => {
-  const res = call('note:create', { spaceId: 'space-project' });
+  const res = call('note:create', { spaceId: 'note-space-project' });
   assert.equal(res.ok, true);
   createdId = res.noteId;
   const note = res.notes.find((item) => item.id === createdId);
   assert(note);
-  assert.equal(note.spaceId, 'space-project');
+  assert.equal(note.spaceId, 'note-space-project');
   assert.equal(note.title, '');
   assert.equal(note.content, '');
 });
@@ -92,24 +106,26 @@ ok('非空空间未选择策略时拒绝删除', () => {
   assert.equal(res.ok, false);
 });
 
-ok('迁移空间时 entries 与 notes 同步迁移且不改更新时间', () => {
+ok('提示词空间迁移只影响 entries，不影响 notes', () => {
   const noteTime = store.get('notes').find((item) => item.id === 'note-old').updatedAt;
   const res = call('space:delete', { id: 'space-project', strategy: 'migrate' });
   assert.equal(res.ok, true);
   assert(res.entries.every((item) => item.spaceId === DEFAULT_SPACE_ID));
-  assert(res.notes.every((item) => item.spaceId === DEFAULT_SPACE_ID));
+  assert.equal(res.notes.find((item) => item.id === 'note-old').spaceId, 'note-space-project');
   assert.equal(res.notes.find((item) => item.id === 'note-old').updatedAt, noteTime);
 });
 
 let purgeSpaceId;
-ok('一并删除空间时其中记事本同步清除', () => {
-  let res = call('space:create', { name: '待清除' });
-  purgeSpaceId = res.spaces.find((item) => item.name === '待清除').id;
+ok('一并删除记事空间时只清除其中笔记', () => {
+  let res = call('space:create', { name: '待清除', scope: 'notes' });
+  purgeSpaceId = res.noteSpaces.find((item) => item.name === '待清除').id;
   res = call('note:create', { spaceId: purgeSpaceId });
   const purgeNoteId = res.noteId;
-  res = call('space:delete', { id: purgeSpaceId, strategy: 'purge' });
+  const entryCount = res.entries.length;
+  res = call('space:delete', { id: purgeSpaceId, strategy: 'purge', scope: 'notes' });
   assert.equal(res.ok, true);
   assert(!res.notes.some((item) => item.id === purgeNoteId));
+  assert.equal(res.entries.length, entryCount);
 });
 
 ok('删除记事本后快照同步更新', () => {
@@ -252,4 +268,4 @@ ok('删除任务时可选择保留或一并删除关联提醒', () => {
   assert(res.reminders.some((item) => item.id === standaloneReminderId));
 });
 
-console.log('\n全部通过：23 项');
+console.log('\n全部通过：24 项');

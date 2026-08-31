@@ -1,4 +1,4 @@
-// main/storage.js · 三期 schema v3 数据底座（P3-M0）
+// main/storage.js · schema v4 数据底座（v4：提示词与记事本空间分离）
 // 职责：数据模型常量、旧数据一次性迁移（备份 → 转换 → 校验 → 落盘 → 写版本号）、
 //       失败回滚（不写 schemaVersion、不删旧字段）、默认值补齐、旧命令 UI 映射辅助。
 // 纯 Node 模块：不依赖 Electron API，store 参数只需实现 { get, set, has, delete }，
@@ -6,11 +6,13 @@
 
 'use strict';
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 // 默认项目空间：旧命令全部归入该空间（产品方案 §9 迁移规则）
 const DEFAULT_SPACE_ID = 'space-commands';
 const DEFAULT_SPACE_NAME = '常用命令';
+const DEFAULT_NOTE_SPACE_ID = 'note-space-default';
+const DEFAULT_NOTE_SPACE_NAME = '默认记事';
 
 // settings 默认值：workspaceWindow/defaultPage/launchAtLogin/reducedMotion 为三期新增，
 // volume/alwaysOnTop/chat/windowPos 沿用二期语义
@@ -27,6 +29,10 @@ const SETTINGS_DEFAULTS = {
 
 function defaultSpace(now) {
   return { id: DEFAULT_SPACE_ID, name: DEFAULT_SPACE_NAME, order: 0, createdAt: now };
+}
+
+function defaultNoteSpace(now) {
+  return { id: DEFAULT_NOTE_SPACE_ID, name: DEFAULT_NOTE_SPACE_NAME, order: 0, createdAt: now };
 }
 
 function toArray(v) {
@@ -156,6 +162,14 @@ function validateData(d) {
     });
   }
   if (!Array.isArray(d.entries)) problems.push('entries 必须是数组');
+  if (!Array.isArray(d.noteSpaces) || d.noteSpaces.length === 0) {
+    problems.push('noteSpaces 必须是非空数组');
+  } else {
+    const noteSpaceIds = new Set(d.noteSpaces.filter(Boolean).map((s) => s.id));
+    toArray(d.notes).forEach((note, i) => {
+      if (!note || !noteSpaceIds.has(note.spaceId)) problems.push(`notes[${i}].spaceId 不存在：${note && note.spaceId}`);
+    });
+  }
   if (!Array.isArray(d.notes)) problems.push('notes 必须是数组');
   if (!Array.isArray(d.tasks)) problems.push('tasks 必须是数组');
   if (!Array.isArray(d.reminders)) problems.push('reminders 必须是数组');
@@ -172,6 +186,7 @@ function validateData(d) {
 function ensureDefaults(store) {
   try {
     if (!Array.isArray(store.get('spaces'))) store.set('spaces', [defaultSpace(Date.now())]);
+    if (!Array.isArray(store.get('noteSpaces'))) store.set('noteSpaces', [defaultNoteSpace(Date.now())]);
     if (!Array.isArray(store.get('entries'))) store.set('entries', []);
     if (!Array.isArray(store.get('notes'))) store.set('notes', []);
     if (!Array.isArray(store.get('tasks'))) store.set('tasks', []);
@@ -203,10 +218,10 @@ function migrate(store) {
   }
   if (current >= SCHEMA_VERSION) {
     ensureDefaults(store);
-    return { ok: true, migrated: false, alreadyV3: true };
+    return { ok: true, migrated: false, alreadyCurrent: true };
   }
 
-  const DATA_KEYS = ['spaces', 'entries', 'notes', 'tasks', 'reminders', 'settings'];
+  const DATA_KEYS = ['spaces', 'noteSpaces', 'entries', 'notes', 'tasks', 'reminders', 'settings'];
   // 迁移前快照（回滚依据）：electron-store 的 has 为磁盘真实存在性，get 带默认值兜底
   let snapshot = null;
   try {
@@ -214,6 +229,48 @@ function migrate(store) {
     const reminders = toArray(store.get('reminders'));
     const oldSettings = plainObject(store.get('settings'));
     const now = Date.now();
+    snapshot = DATA_KEYS.map((k) => ({
+      k,
+      existed: store.has ? store.has(k) : store.get(k) !== undefined,
+      value: store.get(k)
+    }));
+
+    // schema v3 已有共享 spaces：提示词空间原样保留；记事本仅迁移确有笔记引用的空间。
+    // 这样可修正“在提示词中新建空空间后记事本也出现”的历史错误，同时不丢已有笔记归属。
+    if (current === 3) {
+      const oldSpaces = toArray(store.get('spaces'));
+      const oldEntries = toArray(store.get('entries'));
+      const oldNotes = toArray(store.get('notes'));
+      const usedNoteSpaceIds = new Set(oldNotes.map((note) => note && note.spaceId).filter(Boolean));
+      const noteSpaceIdMap = new Map();
+      const migratedNoteSpaces = [defaultNoteSpace(now)];
+      oldSpaces.forEach((space) => {
+        if (!space || !usedNoteSpaceIds.has(space.id)) return;
+        const id = space.id === DEFAULT_SPACE_ID ? DEFAULT_NOTE_SPACE_ID : `note-${space.id}`;
+        noteSpaceIdMap.set(space.id, id);
+        if (id !== DEFAULT_NOTE_SPACE_ID) {
+          migratedNoteSpaces.push({ ...space, id, order: migratedNoteSpaces.length });
+        }
+      });
+      const migratedNotes = oldNotes.map((note) => ({
+        ...note,
+        spaceId: noteSpaceIdMap.get(note.spaceId) || DEFAULT_NOTE_SPACE_ID
+      }));
+      const data = {
+        spaces: oldSpaces.length ? oldSpaces : [defaultSpace(now)],
+        noteSpaces: migratedNoteSpaces,
+        entries: oldEntries,
+        notes: migratedNotes,
+        tasks: toArray(store.get('tasks')),
+        reminders,
+        settings: mergeSettings(oldSettings)
+      };
+      const problems = validateData(data);
+      if (problems.length) throw new Error(`数据校验失败：${problems.join('；')}`);
+      DATA_KEYS.forEach((k) => store.set(k, data[k]));
+      store.set('schemaVersion', SCHEMA_VERSION);
+      return { ok: true, migrated: true, fromVersion: 3, noteSpaceCount: data.noteSpaces.length };
+    }
 
     // ① 备份（带时间戳；即使迁移失败也保留）
     store.set('backupSchemaV2', {
@@ -221,16 +278,10 @@ function migrate(store) {
       commands, reminders, settings: oldSettings
     });
 
-    // ② 快照
-    snapshot = DATA_KEYS.map((k) => ({
-      k,
-      existed: store.has ? store.has(k) : store.get(k) !== undefined,
-      value: store.get(k)
-    }));
-
-    // ③ 转换
+    // ② 转换
     const data = {
       spaces: [defaultSpace(now)],
+      noteSpaces: [defaultNoteSpace(now)],
       entries: entriesFromCommands(commands, now),
       notes: [],
       tasks: [],
@@ -263,6 +314,8 @@ module.exports = {
   SCHEMA_VERSION,
   DEFAULT_SPACE_ID,
   DEFAULT_SPACE_NAME,
+  DEFAULT_NOTE_SPACE_ID,
+  DEFAULT_NOTE_SPACE_NAME,
   SETTINGS_DEFAULTS,
   mergeSettings,
   normalizeSettingsPatch,

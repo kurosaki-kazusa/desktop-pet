@@ -33,13 +33,12 @@ contextBridge.exposeInMainWorld('petAPI', {
   workspaceWinControl: (action) => ipcRenderer.send('workspace:win-control', action),
   // 主进程 → 渲染层：工作台最大化状态同步（切换「最大化/还原」按钮图形）
   onWorkspaceWinState: (cb) => ipcRenderer.on('workspace:win-state', (e, d) => cb(d)),
-  // 项目空间与统一内容模型（P3-M2）：工作台提示词管理页数据与 CRUD；
-  // 变更响应统一为 { ok, spaces, entries, defaultSpaceId } 或 { ok: false, error }
+  // 提示词/记事本独立空间与内容模型；scope=prompts|notes
   workspaceGetData: () => ipcRenderer.invoke('workspace:get-data'),
-  spaceCreate: (name) => ipcRenderer.invoke('space:create', { name }),
-  spaceRename: (id, name) => ipcRenderer.invoke('space:rename', { id, name }),
-  spaceMove: (id, direction) => ipcRenderer.invoke('space:move', { id, direction }),
-  spaceDelete: (id, strategy) => ipcRenderer.invoke('space:delete', { id, strategy }),
+  spaceCreate: (name, scope) => ipcRenderer.invoke('space:create', { name, scope }),
+  spaceRename: (id, name, scope) => ipcRenderer.invoke('space:rename', { id, name, scope }),
+  spaceMove: (id, direction, scope) => ipcRenderer.invoke('space:move', { id, direction, scope }),
+  spaceDelete: (id, strategy, scope) => ipcRenderer.invoke('space:delete', { id, strategy, scope }),
   entrySave: (entry) => ipcRenderer.invoke('entry:save', entry),
   entryDelete: (id) => ipcRenderer.invoke('entry:delete', id),
   entryCopyCover: (coverId) => ipcRenderer.invoke('entry:copy-cover', coverId),
