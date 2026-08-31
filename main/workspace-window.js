@@ -5,15 +5,26 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-const WS_W = 1180;
-const WS_H = 760;
-const WS_MIN_W = 960;
-const WS_MIN_H = 640;
+// 2026-08-28：工作台窗口与 CSS 内容视口最低保持 1440×900；小屏不再自动压缩。
+const WS_W = 1440;
+const WS_H = 900;
+const WS_MIN_W = 1440;
+const WS_MIN_H = 900;
+const WS_SIZE_VERSION = 3;
 // 四项顶部导航页（与 workspace.html 的 data-page / #page-* 对应）
 const PAGES = ['notes', 'prompts', 'schedule', 'settings'];
 
 let win = null;
 let saveTimer = null;
+let logicalBounds = null;
+
+function setAlwaysOnTop(enabled) {
+  if (win && !win.isDestroyed()) win.setAlwaysOnTop(enabled !== false, enabled !== false ? 'screen-saver' : 'normal');
+}
+
+function moveTop() {
+  if (win && !win.isDestroyed()) win.moveTop();
+}
 
 function getWsSettings(store) {
   const s = store.get('settings.workspaceWindow');
@@ -21,11 +32,10 @@ function getWsSettings(store) {
 }
 
 // 多屏边界修正：保存的窗口中心点不在任何屏幕工作区内（拔掉显示器/改分辨率）时，
-// 回到鼠标所在屏幕居中；恢复尺寸夹在 [最小尺寸, 工作区] 区间内，不超出屏幕
+// 回到鼠标所在屏幕；尺寸始终不低于 1440×900。小屏只修正左上角，不压缩内容视口。
 function resolveBounds(saved) {
-  const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
-  const w = Math.min(WS_W, area.width);
-  const h = Math.min(WS_H, area.height);
+  const displays = screen.getAllDisplays();
+  const fallbackArea = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
   if (
     saved
     && Number.isFinite(saved.x) && Number.isFinite(saved.y)
@@ -33,24 +43,30 @@ function resolveBounds(saved) {
   ) {
     const cx = saved.x + saved.width / 2;
     const cy = saved.y + saved.height / 2;
-    const visible = screen.getAllDisplays().some((d) => {
+    const display = displays.find((d) => {
       const wa = d.workArea;
       return cx >= wa.x && cx <= wa.x + wa.width && cy >= wa.y && cy <= wa.y + wa.height;
     });
-    if (visible) {
+    if (display) {
+      const area = display.workArea;
+      const width = Math.max(Math.round(saved.width), WS_MIN_W);
+      const height = Math.max(Math.round(saved.height), WS_MIN_H);
       return {
-        width: Math.min(Math.max(Math.round(saved.width), WS_MIN_W), area.width),
-        height: Math.min(Math.max(Math.round(saved.height), WS_MIN_H), area.height),
-        x: Math.round(saved.x),
-        y: Math.round(saved.y)
+        width,
+        height,
+        x: width <= area.width ? Math.min(Math.max(Math.round(saved.x), area.x), area.x + area.width - width) : area.x,
+        y: height <= area.height ? Math.min(Math.max(Math.round(saved.y), area.y), area.y + area.height - height) : area.y
       };
     }
   }
+  const area = fallbackArea;
+  const w = WS_W;
+  const h = WS_H;
   return {
     width: w,
     height: h,
-    x: Math.round(area.x + (area.width - w) / 2),
-    y: Math.round(area.y + (area.height - h) / 2)
+    x: area.width >= w ? Math.round(area.x + (area.width - w) / 2) : area.x,
+    y: area.height >= h ? Math.round(area.y + (area.height - h) / 2) : area.y
   };
 }
 
@@ -62,21 +78,15 @@ function sendWinState() {
 }
 
 function persistNow(store) {
-  if (!win || win.isDestroyed()) return;
+  if (!win || win.isDestroyed() || !logicalBounds) return;
   const cur = getWsSettings(store);
-  // 最大化时 getNormalBounds() 返回还原态尺寸——保证「最大化后关闭再打开」不丢用户调整的大小；
-  // 尺寸向下钳到最小值：Win11 贴靠布局/拖动还原等路径可能绕过 minWidth/minHeight 约束
-  // 产生低于 960×640 的过渡态 bounds，防抖若恰好捕获会持久化非法尺寸，此处兜底归正
-  const b = win.getNormalBounds();
+  // 不读取 getNormalBounds：Windows 混合 DPI/系统自动归正可能让读回值逐次缩小。
+  // 只保存 will-move / will-resize 给出的用户逻辑尺寸账本。
   store.set('settings.workspaceWindow', {
     ...cur,
-    bounds: {
-      x: Math.round(b.x),
-      y: Math.round(b.y),
-      width: Math.max(WS_MIN_W, Math.round(b.width)),
-      height: Math.max(WS_MIN_H, Math.round(b.height))
-    },
-    maximized: win.isMaximized()
+    bounds: { ...logicalBounds },
+    maximized: win.isMaximized(),
+    sizeVersion: WS_SIZE_VERSION
   });
 }
 
@@ -97,7 +107,13 @@ function open(store) {
     return;
   }
   const saved = getWsSettings(store);
-  const bounds = resolveBounds(saved.bounds);
+  // 尺寸版本升级时忽略旧的小窗口缓存一次；之后继续尊重用户手动放大的尺寸。
+  const bounds = resolveBounds(saved.sizeVersion === WS_SIZE_VERSION ? saved.bounds : null);
+  logicalBounds = { ...bounds };
+  // 尺寸版本升级直接保存“准备创建”的逻辑尺寸，避免关闭时读取 OS/DPI 调整值形成缩小循环。
+  if (saved.sizeVersion !== WS_SIZE_VERSION) {
+    store.set('settings.workspaceWindow', { ...saved, bounds: { ...bounds }, sizeVersion: WS_SIZE_VERSION });
+  }
   win = new BrowserWindow({
     ...bounds,
     minWidth: WS_MIN_W,
@@ -112,14 +128,32 @@ function open(store) {
       nodeIntegration: false
     }
   });
+  setAlwaysOnTop((store.get('settings') || {}).alwaysOnTop !== false);
   if (saved.maximized) win.maximize(); // 显示前恢复最大化，避免先弹正常尺寸再闪变
   win.once('ready-to-show', () => {
     win.show();
     sendWinState();
   });
   win.loadFile('workspace.html');
-  win.on('resize', () => persistSoon(store));
-  win.on('move', () => persistSoon(store));
+  // 只跟踪用户真实移动/缩放事件，程序启动与 DPI 自动调整不会污染持久化尺寸。
+  win.on('will-resize', (e, next) => {
+    if (win.isMaximized()) return;
+    logicalBounds = {
+      x: Math.round(next.x), y: Math.round(next.y),
+      width: Math.max(WS_MIN_W, Math.round(next.width)),
+      height: Math.max(WS_MIN_H, Math.round(next.height))
+    };
+    persistSoon(store);
+  });
+  win.on('will-move', (e, next) => {
+    if (win.isMaximized()) return;
+    logicalBounds = {
+      x: Math.round(next.x), y: Math.round(next.y),
+      width: Math.max(WS_MIN_W, Math.round(next.width || logicalBounds.width)),
+      height: Math.max(WS_MIN_H, Math.round(next.height || logicalBounds.height))
+    };
+    persistSoon(store);
+  });
   win.on('maximize', sendWinState);
   win.on('unmaximize', sendWinState);
   win.on('close', () => {
@@ -129,18 +163,18 @@ function open(store) {
     }
     persistNow(store); // 关闭前兜底落盘（防抖中的最后一次变动不丢失）
   });
-  win.on('closed', () => { win = null; });
+  win.on('closed', () => { win = null; logicalBounds = null; });
 }
 
 // IPC 登记（main.js registerIpc 内调用一次）
 function init(store) {
   // 宠物窗口右键 → 打开/聚焦工作台
   ipcMain.on('workspace:open', () => open(store));
-  // 工作台初始页面：恢复上次停留页面（首次默认提示词管理工具；
-  // P3-M7 接入「默认打开界面」设置后按设置优先）
+  // P3-M7：默认打开界面优先；损坏/缺失时回退上次停留页，再回退提示词页。
   ipcMain.handle('workspace:get-init', () => {
+    const preferred = (store.get('settings') || {}).defaultPage;
     const last = getWsSettings(store).lastPage;
-    return { page: PAGES.includes(last) ? last : 'prompts' };
+    return { page: ['notes', 'prompts'].includes(preferred) ? preferred : (PAGES.includes(last) ? last : 'prompts') };
   });
   // 页面切换持久化（lastPage）
   ipcMain.on('workspace:set-page', (e, page) => {
@@ -160,4 +194,4 @@ function init(store) {
   });
 }
 
-module.exports = { init, open };
+module.exports = { init, open, setAlwaysOnTop, moveTop };

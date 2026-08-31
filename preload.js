@@ -47,6 +47,16 @@ contextBridge.exposeInMainWorld('petAPI', {
   noteCreate: (spaceId) => ipcRenderer.invoke('note:create', { spaceId }),
   noteSave: (note) => ipcRenderer.invoke('note:save', note),
   noteDelete: (id) => ipcRenderer.invoke('note:delete', id),
+  // P3-M5~M6 两列任务看板、月历与提醒关联
+  taskSave: (task) => ipcRenderer.invoke('task:save', task),
+  taskToggleComplete: (id, completed) => ipcRenderer.invoke('task:toggle-complete', { id, completed }),
+  taskDelete: (id, reminderStrategy) => ipcRenderer.invoke('task:delete', { id, reminderStrategy }),
+  workspaceReminderSave: (reminder) => ipcRenderer.invoke('workspace-reminder:save', reminder),
+  workspaceReminderToggle: (id, enabled) => ipcRenderer.invoke('workspace-reminder:toggle', { id, enabled }),
+  workspaceReminderDelete: (id) => ipcRenderer.invoke('workspace-reminder:delete', id),
+  // P3-M7 完整设置页（真实 API Key 不通过任何 getter 返回渲染层）
+  workspaceSettingsGet: () => ipcRenderer.invoke('workspace-settings:get'),
+  workspaceSettingsSave: (settings) => ipcRenderer.invoke('workspace-settings:save', settings),
   // 置顶开关（v2.4：配置中心「始终置顶」勾选，关闭时降级普通窗口并停止保活）
   setAlwaysOnTop: (v) => ipcRenderer.invoke('window:set-always-on-top', v),
   // 系统能力

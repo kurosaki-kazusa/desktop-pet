@@ -735,6 +735,11 @@ let notifyTimer = null;
 const usageReminderAudio = new Audio('assets/audio.wav');
 usageReminderAudio.preload = 'auto';
 
+function configuredReminderVolume() {
+  const value = Number(state.settings && state.settings.volume);
+  return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0.8;
+}
+
 api.onReminder((reminder) => {
   const { text } = reminder;
   playNotifySound(reminder);
@@ -761,6 +766,7 @@ function isUsageReminder(reminder) {
 
 function playUsageReminderVoice() {
   try {
+    usageReminderAudio.volume = configuredReminderVolume();
     usageReminderAudio.pause();
     usageReminderAudio.currentTime = 0;
     const result = usageReminderAudio.play();
@@ -784,7 +790,7 @@ function playNotifySound(reminder) {
 function playSyntheticNotifySound() {
   try {
     const ctx = new AudioContext();
-    const volume = 0.8;
+    const volume = configuredReminderVolume();
     [[880, 0], [1174.66, 0.18]].forEach(([freq, delay]) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -856,6 +862,7 @@ async function loadData() {
     state.settings = data.settings || {};
     state.envFile = data.envFile || ''; // v2.5：.env 配置文件路径（配置中心提示用）
     if (topToggle) topToggle.checked = state.settings.alwaysOnTop !== false; // v2.4：置顶开关回显
+    document.body.classList.toggle('reduce-motion', state.settings.reducedMotion === true);
   } catch (e) {
     state = { reminders: [], commands: [] };
   }

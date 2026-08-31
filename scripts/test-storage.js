@@ -232,6 +232,39 @@ function main() {
     ok('mergeSettings：空输入返回完整默认值');
   }
 
+  // ---------- 8. P3-M7 通用设置补丁校验 ----------
+  {
+    const r = S.normalizeSettingsPatch({ volume: 0.5, chat: { apiKey: 'secret' } }, { defaultPage: 'notes', volume: 0, reducedMotion: true });
+    assert.strictEqual(r.error, undefined);
+    assert.strictEqual(r.value.defaultPage, 'notes');
+    assert.strictEqual(r.value.volume, 0);
+    assert.strictEqual(r.value.reducedMotion, true);
+    assert.strictEqual(r.value.chat.apiKey, 'secret', '局部设置保存不得覆盖大模型配置');
+    ok('设置补丁：局部更新并保留未修改字段');
+  }
+  {
+    assert.match(S.normalizeSettingsPatch({}, { defaultPage: 'settings' }).error, /默认打开界面/);
+    assert.match(S.normalizeSettingsPatch({}, { volume: 1.1 }).error, /音量/);
+    ok('设置补丁：拒绝非法默认页与越界音量');
+  }
+  {
+    assert.match(S.normalizeSettingsPatch({}, { alwaysOnTop: 'yes' }).error, /布尔值/);
+    assert.match(S.normalizeSettingsPatch({}, { launchAtLogin: 1 }).error, /布尔值/);
+    ok('设置补丁：开关字段必须是布尔值');
+  }
+  {
+    const view = S.toPublicChatSettings({ apiKey: 'sk-never-leak', baseUrl: 'https://example.com', model: 'deepseek-chat', systemPrompt: '助手' }, false);
+    assert.strictEqual(view.apiKey, '', '真实 Key 不得返回渲染层');
+    assert.strictEqual(view.apiKeyConfigured, true);
+    assert.strictEqual(view.storedApiKeyConfigured, true);
+    assert.strictEqual(view.baseUrl, 'https://example.com');
+    const envOnly = S.toPublicChatSettings({}, true);
+    assert.strictEqual(envOnly.apiKey, '');
+    assert.strictEqual(envOnly.apiKeyConfigured, true);
+    assert.strictEqual(envOnly.storedApiKeyConfigured, false);
+    ok('大模型公开配置：仅返回 Key 状态，绝不返回真实 Key');
+  }
+
   console.log(`\n全部通过：${passed} 项`);
   process.exit(0);
 }

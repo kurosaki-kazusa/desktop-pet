@@ -1,7 +1,7 @@
 {
   "name": "ai-desktop-pet",
-  "version": "2.2.4",
-  "description": "AI 悬浮桌面宠物：提醒功能 + 常用命令记录器 + 大模型流式对话",
+  "version": "3.0.0",
+  "description": "AI 悬浮桌面宠物与正式工作台：记事、提示词、日程、提醒、设置与大模型流式对话",
   "author": "vibe-coding",
   "main": "main.js",
   "scripts": {
@@ -9,6 +9,8 @@
     "test:chat": "node scripts/test-chat.js",
     "test:storage": "node scripts/test-storage.js",
     "test:content": "node scripts/test-content.js",
+    "test:workspace": "node scripts/test-workspace-window.js",
+    "test:package": "node scripts/test-package.js",
     "make-icon": "electron scripts/make-icon.js",
     "dist": "electron-builder --win",
     "dist:clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dist-temp.ps1"
@@ -17,7 +19,8 @@
     "appId": "com.vibecoding.ai-desktop-pet",
     "productName": "AI桌宠",
     "directories": { "output": "dist" },
-    "files": ["main.js", "main/**/*", "preload.js", "renderer.js", "index.html", "styles.css", "workspace.html", "workspace.css", "workspace.js", "chat.js", "assets/**/*", "!assets/ScreenShot_2026-08-24_100223_551.png"],
+    "asar": true,
+    "files": ["main.js", "main/**/*", "preload.js", "renderer.js", "index.html", "styles.css", "workspace.html", "workspace.css", "workspace.js", "task-rules.js", "chat.js", "assets/**/*", "!assets/ScreenShot_2026-08-24_100223_551.png"],
     "electronDownload": {
       "mirror": "https://registry.npmmirror.com/-/binary/electron/"
     },

@@ -1,10 +1,11 @@
 // workspace.js · 工作台渲染层
 // P3-M1：四项顶部导航路由 + 自定义标题栏窗口控制
-// P3-M2~M4：项目空间 / 提示词卡片与封面 / 记事本与自动保存
+// P3-M2~M6：项目空间 / 提示词与封面 / 记事本 / 任务、月历与提醒
 // 安全约定与 renderer.js 一致：用户输入一律 createElement + textContent 渲染，禁止 innerHTML 拼接
 
 const $ = (sel) => document.querySelector(sel);
 const api = window.petAPI;
+const { shouldMapRangeTask } = window.taskRules;
 
 const PAGES = ['notes', 'prompts', 'schedule', 'settings'];
 const GLYPHS = ['night', 'mint', 'gold', 'pink', 'cyan'];
@@ -33,6 +34,23 @@ function el(tag, attrs, children) {
 function fmtDate(ts) {
   const d = new Date(ts || 0);
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function localIsoDate(date) {
+  const d = date || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function addDays(iso, amount) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d, 12);
+  date.setDate(date.getDate() + amount);
+  return localIsoDate(date);
+}
+
+function shortIsoDate(iso) {
+  const parts = String(iso || '').split('-');
+  return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : '未设置';
 }
 
 // ---------- P3-M1：页面路由 ----------
@@ -74,6 +92,12 @@ const state = {
   spaces: [],
   entries: [],
   notes: [],
+  tasks: [],
+  reminders: [],
+  settings: {},
+  envFile: '',
+  dataPath: '',
+  version: '',
   defaultSpaceId: '',
   spaceId: null, // null = 全部内容
   filter: 'all', // all | prompt | command
@@ -81,7 +105,12 @@ const state = {
   q: '',
   noteSpaceId: null, // null = 全部笔记
   noteQ: '',
-  noteSort: 'updated'
+  noteSort: 'updated',
+  selectedDate: localIsoDate(),
+  taskQ: '',
+  scheduleView: 'board',
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth()
 };
 
 async function reload() {
@@ -94,6 +123,8 @@ function applyData(data) {
   state.spaces = (data && data.spaces) || [];
   state.entries = (data && data.entries) || [];
   state.notes = (data && data.notes) || [];
+  state.tasks = (data && data.tasks) || [];
+  state.reminders = (data && data.reminders) || [];
   state.defaultSpaceId = (data && data.defaultSpaceId) || '';
   if (state.spaceId && !state.spaces.some((s) => s.id === state.spaceId)) state.spaceId = null;
   if (state.noteSpaceId && !state.spaces.some((s) => s.id === state.noteSpaceId)) state.noteSpaceId = null;
@@ -114,6 +145,17 @@ function countIn(spaceId) {
   return state.entries.filter((e) => e && e.spaceId === spaceId).length;
 }
 
+async function loadWorkspaceSettings() {
+  const res = await api.workspaceSettingsGet();
+  if (!res || res.ok !== true) { setSettingsSaveState((res && res.error) || '设置读取失败', 'error'); return false; }
+  state.settings = res.settings || {};
+  state.envFile = res.envFile || '';
+  state.dataPath = res.dataPath || '';
+  state.version = res.version || '';
+  renderSettings();
+  return true;
+}
+
 function noteCountIn(spaceId) {
   return state.notes.filter((note) => note && note.spaceId === spaceId).length;
 }
@@ -128,6 +170,7 @@ function render() {
   renderSpaces();
   renderCards();
   renderNotes();
+  renderSchedule();
 }
 
 function renderHeader() {
@@ -662,6 +705,504 @@ $('#note-sort').addEventListener('change', (e) => { state.noteSort = e.target.va
 $('#note-space-create-btn').addEventListener('click', () => openSpaceDialog('create'));
 $('#note-space-manage-btn').addEventListener('click', () => openSpaceDialog('manage'));
 
+// ---------- P3-M5：两列任务看板与日期区间映射 ----------
+let editingTaskId = null;
+
+function priorityLabel(priority) {
+  return ({ high: '高优先级', normal: '普通', low: '低优先级' })[priority] || '普通';
+}
+
+function taskMatches(task) {
+  const q = state.taskQ.trim().toLowerCase();
+  return !q || `${task.title || ''}\n${task.notes || ''}`.toLowerCase().includes(q);
+}
+
+function renderTasks() {
+  const active = state.tasks.filter((task) => task && task.completed !== true && taskMatches(task));
+  const rangeTasks = active.filter((task) => task.kind === 'range')
+    .sort((a, b) => ((b.priority === 'high') - (a.priority === 'high')) || String(a.endDate).localeCompare(String(b.endDate)));
+  const todayTasks = active.filter((task) => (
+    task.kind === 'today' ? task.date === state.selectedDate : shouldMapRangeTask(task, state.selectedDate)
+  )).sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+  $('#range-task-count').textContent = String(rangeTasks.length);
+  $('#today-task-count').textContent = String(todayTasks.length);
+  renderTaskList($('#range-task-list'), rangeTasks, 'range', '暂时没有长期待办');
+  renderTaskList($('#today-task-list'), todayTasks, 'today', '这一天没有安排');
+  const mapped = todayTasks.filter((task) => task.kind === 'range').length;
+  const [year, month, day] = state.selectedDate.split('-').map(Number);
+  $('#schedule-summary').textContent = `${year} 年 ${month} 月 ${day} 日 · 今日显示 ${todayTasks.length} 项，其中 ${mapped} 项来自长期待办`;
+  $('#task-selected-date').textContent = `${state.selectedDate === localIsoDate() ? '今天 · ' : ''}${month}月${day}日`;
+}
+
+function renderTaskList(list, tasks, context, emptyText) {
+  list.textContent = '';
+  if (tasks.length === 0) {
+    list.appendChild(el('div', { class: 'column-empty' }, [
+      el('span', { text: context === 'range' ? '＋' : '☾' }), el('p', { text: emptyText })
+    ]));
+    return;
+  }
+  tasks.forEach((task) => list.appendChild(taskCard(task, context)));
+}
+
+function taskCard(task, context) {
+  const mappedRange = context === 'today' && task.kind === 'range';
+  const originText = context === 'range' ? '长期事务' : mappedRange ? '来自长期待办' : '当日新增';
+  const dateText = task.kind === 'range'
+    ? `${shortIsoDate(task.startDate)} — ${shortIsoDate(task.endDate)}`
+    : `${shortIsoDate(task.date)} · 当日`;
+  const card = el('article', {
+    class: `task-card priority-${task.priority}`, tabindex: '0', role: 'button',
+    'aria-label': `编辑 ${task.title}`,
+    onclick: () => openTaskDialog(task.id),
+    onkeydown: (e) => { if (e.key === 'Enter') openTaskDialog(task.id); }
+  });
+  const complete = el('button', {
+    type: 'button', class: 'complete-task', text: '✓ 完成',
+    onclick: (e) => { e.stopPropagation(); completeTask(task.id); }
+  });
+  card.appendChild(el('div', { class: 'task-top' }, [
+    el('div', null, [
+      el('span', { class: `task-origin ${task.kind}`, text: originText }),
+      el('span', { text: priorityLabel(task.priority) })
+    ]),
+    el('div', null, [complete, el('button', { type: 'button', text: '•••', 'aria-label': '编辑任务' })])
+  ]));
+  card.appendChild(el('h3', { text: task.title }));
+  card.appendChild(el('p', { text: task.notes || '暂无备注' }));
+  if (mappedRange) {
+    card.appendChild(el('div', { class: 'range-progress' }, [
+      el('i'), el('span', { text: task.priority === 'high' ? '高优先级 · 区间内同步' : '已进入任务最后一周' })
+    ]));
+  }
+  const footerChildren = [];
+  if (task.kind === 'today') footerChildren.push(el('span', { text: task.time ? `◷ ${task.time}` : '全天' }));
+  footerChildren.push(el('span', { class: 'task-date-meta', text: dateText }));
+  if (task.reminderId) footerChildren.push(el('span', { text: '◉ 已提醒' }));
+  card.appendChild(el('footer', null, footerChildren));
+  return card;
+}
+
+function updateTaskTimeState(enabled) {
+  $('#task-time-enabled').checked = enabled;
+  $('#task-time').disabled = !enabled;
+  $('#task-time').closest('.optional-time-field').classList.toggle('enabled', enabled);
+}
+
+function updateTaskKind(kind) {
+  $('#task-kind').value = kind;
+  $('#task-range-fields').hidden = kind !== 'range';
+  $('#task-today-fields').hidden = kind !== 'today';
+  $('#task-dialog-title').textContent = `${editingTaskId ? '编辑' : '新建'}${kind === 'range' ? '长期待办' : '当日事项'}`;
+  $('#task-dialog-subtitle').textContent = kind === 'range'
+    ? '高优先级全程同步，其余仅在最后一周进入今日事项'
+    : '记录当天临时事务，可按需启用具体时间';
+}
+
+function openTaskDialog(id, presetKind) {
+  const task = id ? state.tasks.find((item) => item && item.id === id) : null;
+  if (id && !task) { showToast('任务不存在'); return; }
+  editingTaskId = task ? task.id : null;
+  const kind = task ? task.kind : (presetKind === 'today' ? 'today' : 'range');
+  $('#task-id').value = task ? task.id : '';
+  $('#task-title').value = task ? task.title : '';
+  $('#task-start-date').value = task && task.kind === 'range' ? task.startDate : state.selectedDate;
+  $('#task-end-date').value = task && task.kind === 'range' ? task.endDate : addDays(state.selectedDate, 3);
+  $('#task-date').value = task && task.kind === 'today' ? task.date : state.selectedDate;
+  $('#task-time').value = task && task.time ? task.time : '10:30';
+  updateTaskTimeState(Boolean(task && task.kind === 'today' && task.time));
+  $('#task-priority').value = task ? task.priority : 'normal';
+  $('#task-notes').value = task ? task.notes : '';
+  $('#task-reminder').checked = Boolean(task && task.reminderId);
+  $('#task-delete').hidden = !task;
+  clearFieldError('task-title');
+  updateTaskKind(kind);
+  $('#task-dialog').showModal();
+  $('#task-title').focus();
+}
+
+async function completeTask(id) {
+  const res = await api.taskToggleComplete(id, true);
+  if (handleResult(res)) showToast('事项已完成并从当前视图移除');
+}
+
+$('#task-form').addEventListener('submit', async (e) => {
+  if (e.submitter && e.submitter.value === 'cancel') return;
+  e.preventDefault();
+  const title = $('#task-title').value.trim();
+  if (!title) { setFieldError('task-title', '请输入任务标题'); return; }
+  const kind = $('#task-kind').value;
+  const res = await api.taskSave({
+    id: editingTaskId || '', kind, title,
+    startDate: kind === 'range' ? $('#task-start-date').value : '',
+    endDate: kind === 'range' ? $('#task-end-date').value : '',
+    date: kind === 'today' ? $('#task-date').value : '',
+    time: kind === 'today' && $('#task-time-enabled').checked ? $('#task-time').value : '',
+    priority: $('#task-priority').value,
+    notes: $('#task-notes').value,
+    reminderEnabled: $('#task-reminder').checked
+  });
+  if (!handleResult(res)) return;
+  $('#task-dialog').close();
+  showToast(editingTaskId ? '任务已更新' : '任务已加入看板');
+  editingTaskId = null;
+});
+
+$('#task-delete').addEventListener('click', async () => {
+  const task = state.tasks.find((item) => item && item.id === editingTaskId);
+  if (!task) return;
+  $('#task-dialog').close();
+  const answer = await confirmDialog(task.reminderId ? {
+    title: '删除任务', subtitle: '该任务有关联提醒', message: `如何处理「${task.title}」的关联提醒？`,
+    actions: [
+      { label: '仅删除任务', kind: 'ghost', value: 'keep' },
+      { label: '任务和提醒一起删除', kind: 'danger', value: 'delete' }
+    ]
+  } : {
+    title: '删除任务', subtitle: '该操作不可撤销', message: `确定要删除「${task.title}」吗？`,
+    actions: [{ label: '删除任务', kind: 'danger', value: 'delete' }]
+  });
+  if (!['keep', 'delete'].includes(answer)) { openTaskDialog(task.id); return; }
+  const res = await api.taskDelete(task.id, task.reminderId ? answer : undefined);
+  if (handleResult(res)) { editingTaskId = null; showToast(answer === 'delete' && task.reminderId ? '任务和提醒已删除' : '任务已删除'); }
+});
+
+$('#task-create-range').addEventListener('click', () => openTaskDialog(null, 'range'));
+$('#task-quick-range').addEventListener('click', () => openTaskDialog(null, 'range'));
+$('#task-quick-today').addEventListener('click', () => openTaskDialog(null, 'today'));
+$('#task-time-enabled').addEventListener('change', (e) => updateTaskTimeState(e.target.checked));
+$('#task-title').addEventListener('input', () => clearFieldError('task-title'));
+$('#task-search').addEventListener('input', (e) => { state.taskQ = e.target.value; renderTasks(); });
+document.querySelectorAll('[data-date-step]').forEach((button) => {
+  button.addEventListener('click', () => { state.selectedDate = addDays(state.selectedDate, Number(button.dataset.dateStep)); renderTasks(); });
+});
+$('#task-selected-date').addEventListener('click', () => { state.selectedDate = localIsoDate(); renderTasks(); });
+
+// ---------- P3-M6：月历、日期详情与提醒管理 ----------
+let editingReminderId = null;
+
+function showScheduleView(view) {
+  if (!['board', 'calendar', 'reminders'].includes(view)) view = 'board';
+  state.scheduleView = view;
+  document.querySelectorAll('.schedule-view').forEach((node) => node.classList.toggle('active', node.id === `schedule-${view}`));
+  document.querySelectorAll('.schedule-view-tabs [data-schedule-view]').forEach((button) => button.classList.toggle('active', button.dataset.scheduleView === view));
+  const search = $('#task-search');
+  search.disabled = view !== 'board';
+  search.closest('.compact-search').classList.toggle('disabled', view !== 'board');
+  if (view === 'board') renderTasks();
+  if (view === 'calendar') buildCalendar();
+  if (view === 'reminders') renderReminders();
+}
+
+function buildCalendar() {
+  const year = state.calendarYear;
+  const month = state.calendarMonth;
+  $('#calendar-title').textContent = `${year} 年 ${month + 1} 月`;
+  const first = new Date(year, month, 1, 12);
+  const mondayIndex = (first.getDay() + 6) % 7;
+  const firstCell = new Date(year, month, 1 - mondayIndex, 12);
+  const grid = $('#calendar-grid');
+  grid.textContent = '';
+  for (let index = 0; index < 42; index += 1) {
+    const date = new Date(firstCell);
+    date.setDate(firstCell.getDate() + index);
+    const iso = localIsoDate(date);
+    grid.appendChild(el('button', {
+      type: 'button',
+      class: `calendar-day ${date.getMonth() !== month ? 'muted' : ''} ${iso === localIsoDate() ? 'today' : ''} ${iso === state.selectedDate ? 'selected' : ''}`,
+      dataset: { date: iso },
+      onclick: () => openDayPanel(iso)
+    }, el('b', { text: String(date.getDate()) })));
+  }
+}
+
+function dateInTask(task, date) {
+  return task.kind === 'today'
+    ? task.date === date
+    : String(task.startDate) <= date && date <= String(task.endDate);
+}
+
+function openDayPanel(date) {
+  state.selectedDate = date;
+  const parsed = new Date(`${date}T12:00:00`);
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  $('#day-panel-title').textContent = `${parsed.getMonth() + 1} 月 ${parsed.getDate()} 日 · ${weekdays[parsed.getDay()]}`;
+  const items = [
+    ...state.tasks.filter((task) => task && !task.completed && dateInTask(task, date)).map((task) => ({
+      kind: 'task', title: task.title,
+      meta: task.kind === 'range' ? `区间 ${shortIsoDate(task.startDate)}—${shortIsoDate(task.endDate)}` : `${task.time || '全天'} · 当日事项`
+    })),
+    ...state.reminders.filter((reminder) => reminder && reminder.type === 'absolute' && reminder.date === date).map((reminder) => ({
+      kind: 'reminder', title: reminder.text, meta: `${reminder.time} · 定点提醒${reminder.enabled ? '' : ' · 已停用'}`
+    }))
+  ];
+  const list = $('#day-panel-list');
+  list.textContent = '';
+  if (items.length === 0) {
+    list.appendChild(el('div', { class: 'day-empty' }, [el('span', { text: '☾' }), el('strong', { text: '当天没有安排' }), el('p', { text: '留一点空白，也是一种节奏。' })]));
+  } else {
+    items.forEach((item) => list.appendChild(el('article', null, [
+      el('span', { class: `day-item-icon ${item.kind}`, text: item.kind === 'task' ? '✓' : '◷' }),
+      el('div', null, [el('strong', { text: item.title }), el('small', { text: item.meta })])
+    ])));
+  }
+  $('.calendar-layout').classList.add('day-open');
+  buildCalendar();
+  renderTasks();
+}
+
+function reminderMeta(reminder) {
+  if (reminder.type === 'absolute') return reminder.date ? `${reminder.date} ${reminder.time} · 显示在月历` : `每天 ${reminder.time} · 旧版提醒`;
+  if (reminder.type === 'usage' || reminder.preset === 'usage') return `从应用启动时累计 · ${reminder.intervalMin} 分钟`;
+  return `每 ${reminder.intervalMin} 分钟提醒一次`;
+}
+
+function renderReminders() {
+  const names = { absolute: '定点提醒', interval: '周期提醒', usage: '使用时长' };
+  const tones = { absolute: 'pink', interval: 'cyan', usage: 'gold' };
+  const icons = { absolute: '◉', interval: '◷', usage: '⌁' };
+  $('#reminder-enabled-count').textContent = String(state.reminders.filter((item) => item && item.enabled).length);
+  const list = $('#reminder-list');
+  list.textContent = '';
+  if (state.reminders.length === 0) {
+    list.appendChild(el('div', { class: 'day-empty' }, [el('strong', { text: '还没有提醒' }), el('p', { text: '新增一个提醒，交给桌宠准时告诉你。' })]));
+    return;
+  }
+  state.reminders.filter(Boolean).forEach((reminder) => {
+    const displayType = reminder.preset === 'usage' ? 'usage' : reminder.type;
+    const toggle = el('input', { type: 'checkbox' });
+    toggle.checked = reminder.enabled !== false;
+    toggle.addEventListener('change', async () => handleResult(await api.workspaceReminderToggle(reminder.id, toggle.checked)));
+    list.appendChild(el('article', null, [
+      el('span', { class: `reminder-icon ${tones[displayType] || 'cyan'}`, text: icons[displayType] || '◷' }),
+      el('div', null, [
+        el('span', { class: 'reminder-type', text: names[displayType] || '提醒' }),
+        reminder.linkedTaskId ? el('span', { class: 'linked-badge', text: '已关联任务' }) : null,
+        el('h3', { text: reminder.text || '未命名提醒' }), el('p', { text: reminderMeta(reminder) })
+      ]),
+      el('label', { class: 'switch' }, [toggle, el('i')]),
+      el('button', { type: 'button', text: '•••', 'aria-label': '编辑提醒', onclick: () => openReminderDialog(reminder.id) })
+    ]));
+  });
+}
+
+function updateReminderFields() {
+  const type = $('#reminder-type').value;
+  const linked = Boolean(state.reminders.find((item) => item && item.id === editingReminderId && item.linkedTaskId));
+  $('#reminder-type').disabled = linked;
+  $('#reminder-linked-hint').hidden = !linked;
+  $('#reminder-date-field').hidden = type !== 'absolute';
+  $('#reminder-value-label').textContent = type === 'absolute' ? '提醒时间' : type === 'interval' ? '间隔分钟' : '累计分钟';
+  const value = $('#reminder-value');
+  value.type = type === 'absolute' ? 'time' : 'number';
+  value.min = type === 'absolute' ? '' : '1';
+  value.max = type === 'absolute' ? '' : '10080';
+  if (type !== 'absolute' && String(value.value).includes(':')) value.value = type === 'usage' ? '60' : '50';
+}
+
+function openReminderDialog(id) {
+  const reminder = id ? state.reminders.find((item) => item && item.id === id) : null;
+  if (id && !reminder) return showToast('提醒不存在');
+  editingReminderId = reminder ? reminder.id : null;
+  $('#reminder-dialog-title').textContent = reminder ? '编辑提醒' : '新增提醒';
+  $('#reminder-id').value = reminder ? reminder.id : '';
+  $('#reminder-text').value = reminder ? reminder.text : '';
+  $('#reminder-type').value = reminder ? (reminder.preset === 'usage' ? 'usage' : reminder.type) : 'absolute';
+  $('#reminder-date').value = reminder && reminder.date ? reminder.date : state.selectedDate;
+  $('#reminder-value').value = reminder ? (reminder.type === 'absolute' ? reminder.time : reminder.intervalMin) : '16:30';
+  $('#reminder-enabled').checked = reminder ? reminder.enabled !== false : true;
+  $('#reminder-delete').hidden = !reminder;
+  clearFieldError('reminder-text');
+  updateReminderFields();
+  $('#reminder-dialog').showModal();
+}
+
+function renderSchedule() {
+  renderTasks();
+  buildCalendar();
+  renderReminders();
+}
+
+document.querySelectorAll('[data-schedule-view]').forEach((button) => button.addEventListener('click', () => showScheduleView(button.dataset.scheduleView)));
+document.querySelectorAll('[data-month-step]').forEach((button) => button.addEventListener('click', () => {
+  state.calendarMonth += Number(button.dataset.monthStep);
+  if (state.calendarMonth < 0) { state.calendarMonth = 11; state.calendarYear -= 1; }
+  if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear += 1; }
+  buildCalendar();
+}));
+$('#day-panel-close').addEventListener('click', () => $('.calendar-layout').classList.remove('day-open'));
+$('#day-task-create').addEventListener('click', () => openTaskDialog(null, 'today'));
+$('#reminder-create').addEventListener('click', () => openReminderDialog());
+$('#reminder-type').addEventListener('change', updateReminderFields);
+$('#reminder-text').addEventListener('input', () => clearFieldError('reminder-text'));
+$('#reminder-form').addEventListener('submit', async (event) => {
+  if (event.submitter && event.submitter.value === 'cancel') return;
+  event.preventDefault();
+  const text = $('#reminder-text').value.trim();
+  if (!text) return setFieldError('reminder-text', '请输入提醒内容');
+  const type = $('#reminder-type').value;
+  const res = await api.workspaceReminderSave({
+    id: editingReminderId || '', type, text, enabled: $('#reminder-enabled').checked,
+    date: type === 'absolute' ? $('#reminder-date').value : '',
+    time: type === 'absolute' ? $('#reminder-value').value : '',
+    intervalMin: type === 'absolute' ? '' : $('#reminder-value').value
+  });
+  if (!handleResult(res)) return;
+  $('#reminder-dialog').close();
+  showToast(editingReminderId ? '提醒已更新' : '提醒已创建');
+  editingReminderId = null;
+});
+$('#reminder-delete').addEventListener('click', async () => {
+  const reminder = state.reminders.find((item) => item && item.id === editingReminderId);
+  if (!reminder) return;
+  $('#reminder-dialog').close();
+  const answer = await confirmDialog({
+    title: '删除提醒', subtitle: reminder.linkedTaskId ? '关联任务会保留' : '该操作不可撤销',
+    message: reminder.linkedTaskId ? '删除后，关联任务将不再到点提醒。' : `确定删除「${reminder.text}」吗？`,
+    actions: [{ label: '删除提醒', kind: 'danger', value: 'ok' }]
+  });
+  if (answer !== 'ok') { openReminderDialog(reminder.id); return; }
+  const res = await api.workspaceReminderDelete(reminder.id);
+  if (handleResult(res)) { editingReminderId = null; showToast('提醒已删除'); }
+});
+
+// ---------- P3-M7：完整设置页 ----------
+let volumeSaveTimer = null;
+
+function setSettingsSaveState(text, tone) {
+  const node = $('#settings-save-state');
+  node.classList.toggle('saving', tone === 'saving');
+  node.classList.toggle('error', tone === 'error');
+  node.lastChild.textContent = text;
+}
+
+function renderGeneralSettings() {
+  const settings = state.settings || {};
+  $('#setting-default-page').value = ['notes', 'prompts'].includes(settings.defaultPage) ? settings.defaultPage : 'prompts';
+  $('#setting-always-top').checked = settings.alwaysOnTop !== false;
+  $('#setting-launch-login').checked = settings.launchAtLogin === true;
+  const volume = Math.round(Math.max(0, Math.min(1, Number(settings.volume) || 0)) * 100);
+  $('#setting-volume').value = String(volume);
+  $('#setting-volume-value').textContent = `${volume}%`;
+  $('#setting-reduced-motion').checked = settings.reducedMotion === true;
+  document.body.classList.toggle('reduce-motion', settings.reducedMotion === true);
+  $('#setting-data-path').textContent = state.dataPath || '未获取到数据目录';
+  $('#setting-app-version').textContent = `AI 桌宠 · 版本 ${state.version || '—'}`;
+}
+
+function renderModelSettings() {
+  const chat = (state.settings && state.settings.chat) || {};
+  $('#setting-model-endpoint').value = chat.baseUrl || '';
+  $('#setting-model-name').value = chat.model || '';
+  $('#setting-model-persona').value = chat.systemPrompt || '';
+  $('#setting-model-key').value = '';
+  $('#setting-key-state').textContent = chat.storedApiKeyConfigured ? '已保存' : chat.apiKeyConfigured ? '.env 已配置' : '未配置';
+  $('#setting-clear-key').disabled = !chat.storedApiKeyConfigured;
+  $('#model-config-status').lastChild.textContent = chat.apiKeyConfigured ? 'Key 已配置 · 下一条消息生效' : '尚未配置 API Key';
+  $('#setting-env-path').textContent = state.envFile
+    ? `.env 配置位置：${state.envFile}。页面保存值优先，Key 保存后不会回显。`
+    : '未检测到 .env；可在本页保存配置，Key 保存后不会回显。';
+}
+
+function renderSettings() {
+  renderGeneralSettings();
+  renderModelSettings();
+}
+
+async function saveGeneralSettings(patch) {
+  setSettingsSaveState('正在保存…', 'saving');
+  const res = await api.workspaceSettingsSave(patch);
+  if (!res || res.ok !== true) {
+    setSettingsSaveState((res && res.error) || '保存失败', 'error');
+    showToast((res && res.error) || '设置保存失败');
+    renderGeneralSettings();
+    return false;
+  }
+  state.settings = res.settings || state.settings;
+  renderGeneralSettings();
+  setSettingsSaveState('所有更改已保存');
+  return true;
+}
+
+$('#setting-default-page').addEventListener('change', async (event) => {
+  const page = event.target.value;
+  if (await saveGeneralSettings({ defaultPage: page })) {
+    showToast(`默认打开界面已设为「${page === 'notes' ? '记事本' : '提示词管理工具'}」`);
+    showPage(page);
+  }
+});
+$('#setting-always-top').addEventListener('change', (event) => saveGeneralSettings({ alwaysOnTop: event.target.checked }));
+$('#setting-launch-login').addEventListener('change', (event) => saveGeneralSettings({ launchAtLogin: event.target.checked }));
+$('#setting-reduced-motion').addEventListener('change', (event) => saveGeneralSettings({ reducedMotion: event.target.checked }));
+$('#setting-volume').addEventListener('input', (event) => {
+  const value = Number(event.target.value);
+  $('#setting-volume-value').textContent = `${value}%`;
+  setSettingsSaveState('正在保存…', 'saving');
+  if (volumeSaveTimer) clearTimeout(volumeSaveTimer);
+  volumeSaveTimer = setTimeout(() => {
+    volumeSaveTimer = null;
+    saveGeneralSettings({ volume: value / 100 });
+  }, 280);
+});
+$('#setting-copy-data-path').addEventListener('click', async () => {
+  if (!state.dataPath) return showToast('暂未获取到数据目录');
+  await api.copyText(state.dataPath);
+  showToast('数据存储路径已复制');
+});
+
+$('#setting-model-save').addEventListener('click', async () => {
+  setSettingsSaveState('正在保存…', 'saving');
+  const res = await api.chatSetConfig({
+    apiKey: $('#setting-model-key').value.trim(),
+    baseUrl: $('#setting-model-endpoint').value.trim(),
+    model: $('#setting-model-name').value,
+    systemPrompt: $('#setting-model-persona').value.trim()
+  });
+  if (!res || res.ok !== true) {
+    setSettingsSaveState((res && res.error) || '保存失败', 'error');
+    return showToast((res && res.error) || '大模型配置保存失败');
+  }
+  await loadWorkspaceSettings();
+  setSettingsSaveState('所有更改已保存');
+  showToast('大模型配置已保存，下一条消息生效');
+});
+
+$('#setting-clear-key').addEventListener('click', async () => {
+  const answer = await confirmDialog({
+    title: '清除已保存的 API Key', subtitle: '.env 中的 Key 不受影响',
+    message: '确认清除本页保存的 API Key 吗？清除后若存在 .env Key，会自动回退使用。',
+    actions: [{ label: '清除 Key', kind: 'danger', value: 'ok' }]
+  });
+  if (answer !== 'ok') return;
+  const res = await api.chatSetConfig({
+    clearApiKey: true,
+    baseUrl: $('#setting-model-endpoint').value.trim(),
+    model: $('#setting-model-name').value,
+    systemPrompt: $('#setting-model-persona').value.trim()
+  });
+  if (!res || res.ok !== true) return showToast((res && res.error) || '清除失败');
+  await loadWorkspaceSettings();
+  showToast('已清除本页保存的 API Key');
+});
+
+$('#setting-clear-history').addEventListener('click', async () => {
+  const answer = await confirmDialog({
+    title: '清空对话历史', subtitle: '该操作不可撤销', message: '历史消息与压缩摘要都会被清除。',
+    actions: [{ label: '清空历史', kind: 'danger', value: 'ok' }]
+  });
+  if (answer !== 'ok') return;
+  await api.chatClearHistory();
+  showToast('对话历史已清空');
+});
+
+$('#setting-exit-app').addEventListener('click', async () => {
+  const answer = await confirmDialog({
+    title: '退出 AI 桌宠', subtitle: '工作台与桌宠都会关闭', message: '确认退出应用吗？',
+    actions: [{ label: '退出应用', kind: 'danger', value: 'ok' }]
+  });
+  if (answer === 'ok') api.quit();
+});
+
 // ---------- P3-M2：项目空间管理模态框 ----------
 let spaceDialogMode = 'create'; // create | manage
 let spaceRenameId = null;
@@ -833,11 +1374,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- 跨窗口数据同步（宠物窗口变更 entries 时刷新） ----------
-api.onDataChanged(() => { reload(); });
+api.onDataChanged(() => { reload(); loadWorkspaceSettings(); });
 
-// ---------- 初始化：恢复上次停留页面 + 拉取空间与条目数据 ----------
+// ---------- 初始化：按默认页打开 + 拉取内容与设置 ----------
 (async function init() {
   const init = await api.workspaceGetInit();
   showPage(init.page);
-  await reload();
+  await Promise.all([reload(), loadWorkspaceSettings()]);
 })();

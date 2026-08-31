@@ -1,10 +1,11 @@
-// main/content.js · P3-M2~M4：项目空间、内容模型、封面与记事本
-// 职责：空间 CRUD、entry CRUD、note CRUD 与工作台数据拉取。
+// main/content.js · P3-M2~M6：项目空间、内容模型、封面、记事本、任务与提醒
+// 职责：space / entry / note / task / reminder CRUD 与工作台数据拉取。
 // P3-M3：coverId 支持 none / character / poster / 本地图片 data URL，并提供原生图片复制。
 
 const { ipcMain, BrowserWindow, clipboard, nativeImage } = require('electron');
 const path = require('path');
 const { DEFAULT_SPACE_ID } = require('./storage');
+const { dayNumber, isIsoDate } = require('../task-rules');
 
 const SPACE_NAME_MAX = 16;
 const ENTRY_TITLE_MAX = 60;
@@ -15,6 +16,12 @@ const MAX_COVER_BYTES = 5 * 1024 * 1024;
 const MAX_COVER_DATA_URL_LENGTH = Math.ceil(MAX_COVER_BYTES * 4 / 3) + 128;
 const NOTE_TITLE_MAX = 60;
 const NOTE_CONTENT_MAX = 100000;
+const TASK_TITLE_MAX = 60;
+const TASK_NOTES_MAX = 2000;
+const TASK_KINDS = ['range', 'today'];
+const TASK_PRIORITIES = ['high', 'normal', 'low'];
+const REMINDER_TYPES = ['absolute', 'interval', 'usage'];
+const REMINDER_TEXT_MAX = 80;
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
@@ -39,9 +46,19 @@ function getNotes(store) {
   return Array.isArray(raw) ? raw : [];
 }
 
+function getTasks(store) {
+  const raw = store.get('tasks');
+  return Array.isArray(raw) ? raw : [];
+}
+
+function getReminders(store) {
+  const raw = store.get('reminders');
+  return Array.isArray(raw) ? raw : [];
+}
+
 function snapshot(store) {
   // defaultSpaceId：渲染层据此识别默认空间（默认空间禁删，非空删除时作为迁移目标）
-  return { spaces: getSpaces(store), entries: getEntries(store), notes: getNotes(store), defaultSpaceId: DEFAULT_SPACE_ID };
+  return { spaces: getSpaces(store), entries: getEntries(store), notes: getNotes(store), tasks: getTasks(store), reminders: getReminders(store), defaultSpaceId: DEFAULT_SPACE_ID };
 }
 
 // 数据变更广播（排除发起者；宠物窗口 command:* 数据源同为 entries，需同步刷新）
@@ -90,7 +107,68 @@ function imageForCover(coverId) {
   return nativeImage.createFromPath(path.join(__dirname, '..', ...relative));
 }
 
-function init(store) {
+function normalizeTask(data, existing) {
+  const d = data || {};
+  const kind = existing ? existing.kind : d.kind;
+  if (!TASK_KINDS.includes(kind)) return { error: '任务类型无效' };
+  if (existing && d.kind && d.kind !== existing.kind) return { error: '任务类型不可修改' };
+  const title = String(d.title || '').trim();
+  const notes = String(d.notes || '');
+  const priority = TASK_PRIORITIES.includes(d.priority) ? d.priority : 'normal';
+  if (!title) return { error: '请输入任务标题' };
+  if (title.length > TASK_TITLE_MAX) return { error: `任务标题不能超过 ${TASK_TITLE_MAX} 个字符` };
+  if (notes.length > TASK_NOTES_MAX) return { error: `任务备注不能超过 ${TASK_NOTES_MAX} 个字符` };
+  const result = { kind, title, notes, priority };
+  if (kind === 'range') {
+    const startDate = String(d.startDate || '');
+    const endDate = String(d.endDate || '');
+    if (!isIsoDate(startDate) || !isIsoDate(endDate)) return { error: '请选择有效的开始与结束日期' };
+    if (dayNumber(startDate) > dayNumber(endDate)) return { error: '结束日期不能早于开始日期' };
+    result.startDate = startDate;
+    result.endDate = endDate;
+    result.date = '';
+    result.time = '';
+  } else {
+    const date = String(d.date || '');
+    const time = String(d.time || '');
+    if (!isIsoDate(date)) return { error: '请选择有效的事项日期' };
+    if (time && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) return { error: '事项时间无效' };
+    result.date = date;
+    result.time = time;
+    result.startDate = '';
+    result.endDate = '';
+  }
+  return { value: result };
+}
+
+function normalizeReminder(data, existing) {
+  const d = data || {};
+  const linked = existing && existing.linkedTaskId;
+  const type = linked ? 'absolute' : (REMINDER_TYPES.includes(d.type) ? d.type : 'absolute');
+  const text = String(d.text || '').trim();
+  if (!text) return { error: '请输入提醒内容' };
+  if (text.length > REMINDER_TEXT_MAX) return { error: `提醒内容不能超过 ${REMINDER_TEXT_MAX} 个字符` };
+  const value = { type, text, enabled: d.enabled !== false, linkedTaskId: linked || null };
+  if (existing && existing.preset) value.preset = existing.preset;
+  if (type === 'absolute') {
+    const date = String(d.date || '');
+    const time = String(d.time || '');
+    if (!isIsoDate(date)) return { error: '请选择有效的提醒日期' };
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) return { error: '请选择有效的提醒时间' };
+    value.date = date;
+    value.time = time;
+  } else {
+    const intervalMin = Math.round(Number(d.intervalMin));
+    if (!Number.isFinite(intervalMin) || intervalMin < 1 || intervalMin > 10080) return { error: '提醒分钟数须为 1 到 10080' };
+    value.intervalMin = intervalMin;
+  }
+  return { value };
+}
+
+function init(store, options = {}) {
+  const reminderChanged = (id) => {
+    if (typeof options.onReminderChanged === 'function') options.onReminderChanged(id);
+  };
   // 工作台数据拉取（spaces 已按 order 排序）
   ipcMain.handle('workspace:get-data', () => snapshot(store));
 
@@ -257,6 +335,136 @@ function init(store) {
     const notes = getNotes(store);
     if (!notes.some((note) => note && note.id === idStr)) return { ok: false, error: '记事本不存在' };
     store.set('notes', notes.filter((note) => !note || note.id !== idStr));
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  // ---------- P3-M5~M6：任务与关联定点提醒 ----------
+  ipcMain.handle('task:save', (e, data) => {
+    const d = data || {};
+    const tasks = getTasks(store);
+    const index = d.id ? tasks.findIndex((task) => task && task.id === d.id) : -1;
+    if (d.id && index < 0) return { ok: false, error: '任务不存在' };
+    const existing = index >= 0 ? tasks[index] : null;
+    const normalized = normalizeTask(d, existing);
+    if (normalized.error) return { ok: false, error: normalized.error };
+    const now = Date.now();
+    let savedTask;
+    if (existing) {
+      savedTask = { ...existing, ...normalized.value, updatedAt: now };
+      tasks[index] = savedTask;
+    } else {
+      savedTask = {
+        id: uid('task'), ...normalized.value, completed: false, reminderId: null,
+        createdAt: now, updatedAt: now
+      };
+      tasks.push(savedTask);
+    }
+    if (typeof d.reminderEnabled === 'boolean') {
+      const reminders = getReminders(store);
+      const reminderIndex = savedTask.reminderId
+        ? reminders.findIndex((item) => item && item.id === savedTask.reminderId)
+        : -1;
+      if (d.reminderEnabled) {
+        const reminder = {
+          id: reminderIndex >= 0 ? reminders[reminderIndex].id : uid('reminder'),
+          type: 'absolute', text: savedTask.title,
+          date: savedTask.kind === 'range' ? savedTask.startDate : savedTask.date,
+          time: savedTask.kind === 'today' && savedTask.time ? savedTask.time : '09:00',
+          enabled: reminderIndex >= 0 ? reminders[reminderIndex].enabled !== false : true,
+          linkedTaskId: savedTask.id
+        };
+        if (reminderIndex >= 0) reminders[reminderIndex] = { ...reminders[reminderIndex], ...reminder };
+        else reminders.push(reminder);
+        savedTask.reminderId = reminder.id;
+        tasks[tasks.findIndex((item) => item.id === savedTask.id)] = savedTask;
+        store.set('reminders', reminders);
+        reminderChanged(reminder.id);
+      } else if (savedTask.reminderId) {
+        const removedId = savedTask.reminderId;
+        savedTask.reminderId = null;
+        tasks[tasks.findIndex((item) => item.id === savedTask.id)] = savedTask;
+        store.set('reminders', reminders.filter((item) => !item || item.id !== removedId));
+        reminderChanged(removedId);
+      }
+    }
+    store.set('tasks', tasks);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  ipcMain.handle('task:toggle-complete', (e, data) => {
+    const id = String((data && data.id) || '');
+    const tasks = getTasks(store);
+    const index = tasks.findIndex((task) => task && task.id === id);
+    if (index < 0) return { ok: false, error: '任务不存在' };
+    const completed = data && typeof data.completed === 'boolean' ? data.completed : !tasks[index].completed;
+    tasks[index] = { ...tasks[index], completed, updatedAt: Date.now() };
+    store.set('tasks', tasks);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  ipcMain.handle('task:delete', (e, data) => {
+    const idStr = String((data && typeof data === 'object' ? data.id : data) || '');
+    const tasks = getTasks(store);
+    const task = tasks.find((item) => item && item.id === idStr);
+    if (!task) return { ok: false, error: '任务不存在' };
+    if (task.reminderId) {
+      const strategy = data && typeof data === 'object' ? data.reminderStrategy : '';
+      if (!['keep', 'delete'].includes(strategy)) return { ok: false, error: '请选择保留或一并删除关联提醒' };
+      const reminders = getReminders(store);
+      if (strategy === 'delete') store.set('reminders', reminders.filter((item) => !item || item.id !== task.reminderId));
+      else store.set('reminders', reminders.map((item) => item && item.id === task.reminderId ? { ...item, linkedTaskId: null } : item));
+      reminderChanged(task.reminderId);
+    }
+    store.set('tasks', tasks.filter((task) => !task || task.id !== idStr));
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  // ---------- P3-M6：工作台提醒管理 ----------
+  ipcMain.handle('workspace-reminder:save', (e, data) => {
+    const d = data || {};
+    const reminders = getReminders(store);
+    const index = d.id ? reminders.findIndex((item) => item && item.id === d.id) : -1;
+    if (d.id && index < 0) return { ok: false, error: '提醒不存在' };
+    const existingReminder = index >= 0 ? reminders[index] : null;
+    const normalizedReminder = normalizeReminder(d, existingReminder);
+    if (normalizedReminder.error) return { ok: false, error: normalizedReminder.error };
+    const reminder = existingReminder
+      ? { ...existingReminder, ...normalizedReminder.value }
+      : { id: uid('reminder'), ...normalizedReminder.value };
+    if (index >= 0) reminders[index] = reminder;
+    else reminders.push(reminder);
+    store.set('reminders', reminders);
+    reminderChanged(reminder.id);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  ipcMain.handle('workspace-reminder:toggle', (e, data) => {
+    const id = String((data && data.id) || '');
+    const reminders = getReminders(store);
+    const index = reminders.findIndex((item) => item && item.id === id);
+    if (index < 0) return { ok: false, error: '提醒不存在' };
+    reminders[index] = { ...reminders[index], enabled: data && typeof data.enabled === 'boolean' ? data.enabled : !reminders[index].enabled };
+    store.set('reminders', reminders);
+    reminderChanged(id);
+    broadcast(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, ...snapshot(store) };
+  });
+
+  ipcMain.handle('workspace-reminder:delete', (e, id) => {
+    const idStr = String(id || '');
+    const reminders = getReminders(store);
+    const reminder = reminders.find((item) => item && item.id === idStr);
+    if (!reminder) return { ok: false, error: '提醒不存在' };
+    store.set('reminders', reminders.filter((item) => !item || item.id !== idStr));
+    if (reminder.linkedTaskId) {
+      store.set('tasks', getTasks(store).map((task) => task && task.id === reminder.linkedTaskId ? { ...task, reminderId: null, updatedAt: Date.now() } : task));
+    }
+    reminderChanged(idStr);
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
   });

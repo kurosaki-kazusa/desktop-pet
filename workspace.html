@@ -127,20 +127,84 @@
     </section>
 
     <section class="page" id="page-schedule">
-      <div class="page-placeholder">
-        <span class="glyph">▦</span>
-        <h2>日程管理</h2>
-        <p>长期待办与今日事项两列看板、纯日期月历，整合现有提醒管理。</p>
-        <em>P3-M5 / P3-M6 上线</em>
+      <div class="full-workspace">
+        <header class="content-header schedule-header">
+          <div><span class="eyebrow">DAILY RHYTHM</span><h1>日程管理</h1><p id="schedule-summary">今日还没有安排</p></div>
+          <button type="button" class="primary-button" id="task-create-range"><span>＋</span>新建长期待办</button>
+        </header>
+        <div class="schedule-toolbar">
+          <div class="date-switcher"><button type="button" data-date-step="-1" aria-label="前一天">‹</button><button type="button" class="today-button" id="task-selected-date">今天</button><button type="button" data-date-step="1" aria-label="后一天">›</button></div>
+          <div class="schedule-view-tabs"><button type="button" class="active" data-schedule-view="board">今日看板</button><button type="button" data-schedule-view="calendar">日程表</button><button type="button" data-schedule-view="reminders">提醒管理</button></div>
+          <label class="compact-search"><span>⌕</span><input id="task-search" type="search" placeholder="搜索长期待办与今日事项"></label>
+        </div>
+        <div class="schedule-view active" id="schedule-board"><div class="kanban-board">
+          <section class="kanban-column todo-column">
+            <header><div><span class="column-dot"></span><strong>长期待办</strong><b id="range-task-count">0</b></div><button type="button" id="task-quick-range" aria-label="新增长期待办">＋</button></header>
+            <p class="column-description">高优先级区间内同步 · 其余仅最后一周进入今日事项</p>
+            <div class="task-list" id="range-task-list"></div>
+          </section>
+          <section class="kanban-column doing-column">
+            <header><div><span class="column-dot"></span><strong>今日事项</strong><b id="today-task-count">0</b></div><button type="button" id="task-quick-today" aria-label="新增当日事项">＋</button></header>
+            <p class="column-description">长期任务按规则映射 + 当日偶发事项</p>
+            <div class="task-list" id="today-task-list"></div>
+          </section>
+        </div></div>
+        <div class="schedule-view" id="schedule-calendar">
+          <div class="calendar-layout">
+            <section class="calendar-shell">
+              <header class="calendar-header"><button type="button" data-month-step="-1" aria-label="上个月">‹</button><h2 id="calendar-title"></h2><button type="button" data-month-step="1" aria-label="下个月">›</button><button type="button" class="ghost-button" data-schedule-view="board">返回今日看板</button></header>
+              <div class="weekdays"><span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span></div>
+              <div class="calendar-grid" id="calendar-grid"></div>
+            </section>
+            <aside class="day-panel" id="day-panel">
+              <header><div><span>SELECTED DAY</span><h3 id="day-panel-title"></h3></div><button type="button" id="day-panel-close" aria-label="关闭日期详情">×</button></header>
+              <div id="day-panel-list"></div>
+              <button type="button" class="primary-button wide-button" id="day-task-create">＋ 在当天新建偶发事项</button>
+            </aside>
+          </div>
+        </div>
+        <div class="schedule-view" id="schedule-reminders">
+          <section class="reminder-shell">
+            <header><div><span class="eyebrow">REMINDER CENTER</span><h2>提醒管理</h2><p>周期与使用时长提醒不会重复显示在月历。</p></div><div><button type="button" class="ghost-button" data-schedule-view="board">返回看板</button><button type="button" class="primary-button" id="reminder-create">＋ 新增提醒</button></div></header>
+            <div class="reminder-stats"><span><b id="reminder-enabled-count">0</b> 条已启用</span><span>点击日程日期可查看定点提醒</span></div>
+            <div class="reminder-list" id="reminder-list"></div>
+          </section>
+        </div>
       </div>
     </section>
 
     <section class="page" id="page-settings">
-      <div class="page-placeholder">
-        <span class="glyph">⚙</span>
-        <h2>设置</h2>
-        <p>通用设置、大模型配置与应用级信息，将在同一页面管理。</p>
-        <em>P3-M7 上线</em>
+      <div class="settings-workspace">
+        <header class="content-header settings-heading">
+          <div><span class="eyebrow">PREFERENCES</span><h1>设置</h1><p>所有设置集中在当前页面，不使用子栏目。</p></div>
+          <span class="save-state" id="settings-save-state"><i></i>所有更改已保存</span>
+        </header>
+        <div class="settings-grid">
+          <section class="settings-card general-settings">
+            <header><span class="settings-icon cyan">⚙</span><div><h2>通用设置</h2><p>更改即时保存并同步到应用</p></div></header>
+            <div class="setting-row"><div><strong>默认打开界面</strong><p>每次打开工作台时首先显示的页面</p></div><select class="setting-select" id="setting-default-page"><option value="notes">记事本</option><option value="prompts">提示词管理工具</option></select></div>
+            <div class="setting-row"><div><strong>应用窗口始终置顶</strong><p>让桌宠和工作台保持在其他窗口上方</p></div><label class="switch"><input type="checkbox" id="setting-always-top"><i></i></label></div>
+            <div class="setting-row"><div><strong>开机时启动应用</strong><p>登录 Windows 后自动运行</p></div><label class="switch"><input type="checkbox" id="setting-launch-login"><i></i></label></div>
+            <div class="setting-row"><div><strong>提醒音量</strong><p>控制语音和合成提示音音量</p></div><div class="range-control"><input id="setting-volume" type="range" min="0" max="100" step="1"><b id="setting-volume-value">80%</b></div></div>
+            <div class="setting-row"><div><strong>减少动态效果</strong><p>暂停环境动画并缩短非必要过渡</p></div><label class="switch"><input type="checkbox" id="setting-reduced-motion"><i></i></label></div>
+            <div class="setting-row storage-row"><div><strong>数据存储位置</strong><p id="setting-data-path">正在读取…</p></div><button type="button" class="ghost-button" id="setting-copy-data-path">复制路径</button></div>
+          </section>
+          <section class="settings-card model-settings">
+            <header><span class="settings-icon gold">✦</span><div><h2>大模型配置</h2><p id="model-config-status"><span class="status-dot"></span>正在读取配置</p></div></header>
+            <div class="form-grid">
+              <label><span>API Key</span><div class="secure-input"><input id="setting-model-key" type="password" placeholder="留空保持当前配置"><b id="setting-key-state">未配置</b></div><small>真实 Key 只进入主进程，保存后不再回传页面</small></label>
+              <label><span>模型</span><select id="setting-model-name"><option value="">留空默认 deepseek-chat</option><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></select><small>用于桌宠对话生成</small></label>
+              <label class="wide"><span>接口地址</span><input id="setting-model-endpoint" placeholder="留空默认 https://api.deepseek.com" spellcheck="false"><small>使用兼容 OpenAI 的 API 地址</small></label>
+              <label class="wide"><span>助手人设</span><textarea id="setting-model-persona" placeholder="留空使用内置猫娘人设"></textarea></label>
+              <p class="env-path wide" id="setting-env-path"></p>
+            </div>
+            <footer><div><button type="button" class="danger-text" id="setting-clear-key">清除已保存 Key</button><button type="button" class="danger-text" id="setting-clear-history">清空对话历史</button></div><button type="button" class="primary-button" id="setting-model-save">保存大模型配置</button></footer>
+          </section>
+        </div>
+        <footer class="app-footer">
+          <div><img src="assets/ui-theme/firefly/ornaments/chest-crystal-64.png" alt=""><span><b>流萤工作台</b><small id="setting-app-version">AI 桌宠</small></span></div>
+          <div class="footer-actions"><button type="button" class="danger-button" id="setting-exit-app">退出应用</button></div>
+        </footer>
       </div>
     </section>
   </main>
@@ -169,6 +233,50 @@
     </form>
   </aside>
 
+  <!-- P3-M5~M6 任务编辑：固定任务类型 + 可选关联定点提醒 -->
+  <dialog class="modal task-modal" id="task-dialog">
+    <form method="dialog" id="task-form">
+      <header><div><span class="modal-icon cyan">✓</span><div><h2 id="task-dialog-title">新建长期待办</h2><p id="task-dialog-subtitle">设置日期区间与映射优先级</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+      <div class="modal-body">
+        <input type="hidden" id="task-id"><input type="hidden" id="task-kind" value="range">
+        <label class="field"><span>任务标题 <b>*</b></span><input id="task-title" maxlength="60" placeholder="今天要完成什么？"><small class="field-error" data-error-for="task-title"></small></label>
+        <div class="field-grid two" id="task-range-fields">
+          <label><span>开始日期</span><input id="task-start-date" type="date"></label>
+          <label><span>结束日期</span><input id="task-end-date" type="date"></label>
+        </div>
+        <div class="field-grid two" id="task-today-fields" hidden>
+          <label><span>事项日期</span><input id="task-date" type="date"></label>
+          <div class="optional-time-field">
+            <div class="optional-time-heading"><span>时间 <small>非必选</small></span><label class="optional-time-toggle"><input id="task-time-enabled" type="checkbox"><span>设置时间</span></label></div>
+            <input id="task-time" type="time" value="10:30" disabled>
+          </div>
+        </div>
+        <label class="field"><span>优先级</span><select id="task-priority"><option value="normal">普通</option><option value="high">高优先级</option><option value="low">低优先级</option></select></label>
+        <label class="field"><span>备注</span><textarea id="task-notes" maxlength="2000" placeholder="补充任务说明"></textarea></label>
+        <label class="check-row"><input type="checkbox" id="task-reminder"><span><strong>到点提醒</strong><small>长期待办在开始日 09:00 提醒；当日事项按设置时间或 09:00 提醒</small></span></label>
+      </div>
+      <footer><button type="button" class="danger-text" id="task-delete">删除任务</button><div><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button">保存任务</button></div></footer>
+    </form>
+  </dialog>
+
+  <dialog class="modal reminder-modal" id="reminder-dialog">
+    <form method="dialog" id="reminder-form">
+      <header><div><span class="modal-icon gold">◷</span><div><h2 id="reminder-dialog-title">新增提醒</h2><p>管理定点、周期与使用时长提醒</p></div></div><button value="cancel" class="modal-close" aria-label="关闭">×</button></header>
+      <div class="modal-body">
+        <input type="hidden" id="reminder-id">
+        <label class="field"><span>提醒内容 <b>*</b></span><input id="reminder-text" maxlength="80" placeholder="输入提醒内容"><small class="field-error" data-error-for="reminder-text"></small></label>
+        <div class="field-grid two">
+          <label><span>提醒类型</span><select id="reminder-type"><option value="absolute">定点提醒</option><option value="interval">周期提醒</option><option value="usage">使用时长</option></select></label>
+          <label id="reminder-date-field"><span>提醒日期</span><input id="reminder-date" type="date"></label>
+          <label><span id="reminder-value-label">提醒时间</span><input id="reminder-value" type="time" value="16:30"></label>
+        </div>
+        <label class="check-row"><input type="checkbox" id="reminder-enabled" checked><span><strong>启用提醒</strong><small>关闭后保留配置但不触发</small></span></label>
+        <p class="milestone-hint" id="reminder-linked-hint" hidden>该提醒已关联任务，类型保持为定点提醒；删除提醒不会删除任务。</p>
+      </div>
+      <footer><button type="button" class="danger-text" id="reminder-delete">删除提醒</button><div><button value="cancel" class="ghost-button">取消</button><button type="submit" class="primary-button">保存提醒</button></div></footer>
+    </form>
+  </dialog>
+
   <!-- 项目空间新建/管理模态框 -->
   <dialog class="modal" id="space-dialog">
     <form method="dialog" id="space-form">
@@ -192,6 +300,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span><b id="toast-message">操作完成</b></div>
 
+  <script src="task-rules.js"></script>
   <script src="workspace.js"></script>
 </body>
 </html>

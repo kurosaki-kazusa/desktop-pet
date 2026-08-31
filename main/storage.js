@@ -48,6 +48,37 @@ function mergeSettings(old) {
   };
 }
 
+function normalizeSettingsPatch(current, patch) {
+  const base = mergeSettings(plainObject(current));
+  const d = plainObject(patch);
+  if (d.defaultPage != null && !['notes', 'prompts'].includes(d.defaultPage)) return { error: '默认打开界面无效' };
+  if (d.volume != null && (!Number.isFinite(Number(d.volume)) || Number(d.volume) < 0 || Number(d.volume) > 1)) {
+    return { error: '提醒音量须在 0 到 1 之间' };
+  }
+  const value = { ...base };
+  if (d.defaultPage != null) value.defaultPage = d.defaultPage;
+  if (d.volume != null) value.volume = Number(d.volume);
+  for (const key of ['alwaysOnTop', 'launchAtLogin', 'reducedMotion']) {
+    if (d[key] != null) {
+      if (typeof d[key] !== 'boolean') return { error: `${key} 必须为布尔值` };
+      value[key] = d[key];
+    }
+  }
+  return { value };
+}
+
+function toPublicChatSettings(chatSettings, envApiKeyConfigured) {
+  const chat = { ...SETTINGS_DEFAULTS.chat, ...plainObject(chatSettings) };
+  return {
+    apiKey: '',
+    apiKeyConfigured: Boolean(chat.apiKey || envApiKeyConfigured),
+    storedApiKeyConfigured: Boolean(chat.apiKey),
+    baseUrl: chat.baseUrl,
+    model: chat.model,
+    systemPrompt: chat.systemPrompt
+  };
+}
+
 // 旧命令 → schema v3 entry：标题/正文/pinned 原样保留（含 v2.0 之前的 quick 字段兼容），
 // type 固定为 command，归入默认「常用命令」空间
 function entriesFromCommands(commands, now) {
@@ -234,6 +265,8 @@ module.exports = {
   DEFAULT_SPACE_NAME,
   SETTINGS_DEFAULTS,
   mergeSettings,
+  normalizeSettingsPatch,
+  toPublicChatSettings,
   entriesFromCommands,
   commandsFromEntries,
   entryFromCommand,

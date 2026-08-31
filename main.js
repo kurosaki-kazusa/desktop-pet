@@ -5,6 +5,7 @@ const fs = require('fs');
 const Store = require('electron-store');
 const { ChatEngine, loadEnvFrom } = require('./chat'); // v2.3 大模型会话后端（复刻 deepseek-harness 会话设计）
 const storage = require('./main/storage'); // P3-M0：schema v3 数据底座（迁移/默认值/旧命令映射）
+const { isAbsoluteReminderDue } = require('./task-rules');
 const workspaceWindow = require('./main/workspace-window'); // P3-M1：正式工作台独立窗口
 const content = require('./main/content'); // P3-M2：项目空间与统一内容模型（space:*/entry:*）
 
@@ -45,6 +46,10 @@ if (!migrationResult.ok) {
 function getChatSettings() {
   const s = store.get('settings') || {};
   return { ...CHAT_DEFAULTS, ...(s.chat || {}) };
+}
+
+function publicChatSettings() {
+  return storage.toPublicChatSettings(getChatSettings(), Boolean(chatEnv.DEEPSEEK_API_KEY));
 }
 
 // .env 读取目录（后读覆盖先读）：项目根（开发）→ 安装目录（打包后 exe 旁）→ userData（%APPDATA%）
@@ -162,12 +167,14 @@ function keepTop() {
   if (!isTopEnabled()) return;
   if (win && !win.isDestroyed()) win.moveTop();
   if (cfgWin && !cfgWin.isDestroyed()) cfgWin.moveTop();
+  workspaceWindow.moveTop();
 }
 
 function applyTop(enabled) {
   const level = enabled ? 'screen-saver' : 'normal';
   if (win && !win.isDestroyed()) win.setAlwaysOnTop(enabled, level);
   if (cfgWin && !cfgWin.isDestroyed()) cfgWin.setAlwaysOnTop(enabled, level);
+  workspaceWindow.setAlwaysOnTop(enabled);
 }
 
 function savePos() {
@@ -248,6 +255,7 @@ function tick() {
   const now = new Date();
   const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const today = now.toDateString();
+  const isoToday = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   let reminders = [];
   try {
     reminders = store.get('reminders') || [];
@@ -257,11 +265,12 @@ function tick() {
   for (const r of reminders) {
     if (!r.enabled) continue;
     if (r.type === 'absolute') {
-      if (r.time === hhmm && firedAbsolute.get(r.id) !== today) {
+      // P3-M6：新建定点提醒绑定具体日期；旧提醒没有 date 时继续保持“每天”兼容语义。
+      if (isAbsoluteReminderDue(r, isoToday, hhmm) && firedAbsolute.get(r.id) !== today) {
         firedAbsolute.set(r.id, today);
         triggerReminder(r);
       }
-    } else if (r.type === 'interval') {
+    } else if (r.type === 'interval' || r.type === 'usage') {
       const minutes = Math.max(1, Number(r.intervalMin) || 1);
       let next = nextFireAt.get(r.id);
       if (!next) {
@@ -284,7 +293,8 @@ function registerIpc() {
     return {
       reminders: store.get('reminders'),
       commands,
-      settings: { ...store.get('settings'), chat: getChatSettings() }, // v2.3：chat 配置归一化后返回
+      // P3-M7：渲染层只接收 Key 配置状态，不再回传真实 Key。
+      settings: { ...store.get('settings'), chat: publicChatSettings() },
       envFile: findEnvFile() // v2.5：当前 .env 配置文件路径（配置中心展示，找不到为空串）
     };
   });
@@ -298,15 +308,28 @@ function registerIpc() {
     return list;
   });
   ipcMain.handle('reminder:update', (e, r) => {
-    const list = store.get('reminders').map(x => (x.id === r.id ? r : x));
+    const list = store.get('reminders').map((x) => {
+      if (x.id !== r.id) return x;
+      // 旧配置中心仍复用该入口；关联任务提醒不能被旧表单改成周期提醒或丢失日期关联。
+      return x.linkedTaskId
+        ? { ...x, ...r, type: 'absolute', date: x.date, linkedTaskId: x.linkedTaskId }
+        : { ...x, ...r };
+    });
     store.set('reminders', list);
     nextFireAt.delete(r.id); // 间隔变更后重新计时
+    firedAbsolute.delete(r.id);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
     return list;
   });
   ipcMain.handle('reminder:remove', (e, id) => {
+    const removed = (store.get('reminders') || []).find((x) => x && x.id === id);
     const list = store.get('reminders').filter(x => x.id !== id);
     store.set('reminders', list);
+    if (removed && removed.linkedTaskId) {
+      store.set('tasks', (store.get('tasks') || []).map((task) => task && task.id === removed.linkedTaskId
+        ? { ...task, reminderId: null, updatedAt: Date.now() }
+        : task));
+    }
     nextFireAt.delete(id);
     firedAbsolute.delete(id);
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
@@ -346,14 +369,29 @@ function registerIpc() {
   });
   ipcMain.on('chat:abort', () => chatEngine.abort());
   ipcMain.handle('chat:set-config', (e, cfg) => {
+    const d = cfg || {};
+    const apiKey = String(d.apiKey || '').trim();
+    const baseUrl = String(d.baseUrl || '').trim();
+    const model = String(d.model || '').trim();
+    const systemPrompt = String(d.systemPrompt || '').trim();
+    if (apiKey.length > 512) return { ok: false, error: 'API Key 长度无效' };
+    if (baseUrl) {
+      try {
+        const parsed = new URL(baseUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return { ok: false, error: '接口地址仅支持 HTTP/HTTPS' };
+      } catch { return { ok: false, error: '接口地址格式无效' }; }
+    }
+    if (!['', 'deepseek-chat', 'deepseek-reasoner'].includes(model)) return { ok: false, error: '模型名称无效' };
+    if (systemPrompt.length > 10000) return { ok: false, error: '助手人设不能超过 10000 个字符' };
+    const previous = getChatSettings();
     store.set('settings.chat', {
-      apiKey: String(cfg.apiKey || '').trim(),
-      baseUrl: String(cfg.baseUrl || '').trim(),
-      model: String(cfg.model || '').trim(),
-      systemPrompt: String(cfg.systemPrompt || '').trim()
+      apiKey: d.clearApiKey === true ? '' : (apiKey || previous.apiKey),
+      baseUrl,
+      model,
+      systemPrompt
     });
     broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
-    return true;
+    return { ok: true };
   });
   ipcMain.handle('chat:clear-history', () => {
     chatEngine.clearHistory();
@@ -489,7 +527,40 @@ function registerIpc() {
 
   // 项目空间与统一内容模型（P3-M2）：工作台提示词管理页数据与 CRUD；
   // 变更会广播 data:changed（宠物窗口 command:* 数据源同为 entries，需同步）
-  content.init(store);
+  content.init(store, {
+    onReminderChanged: (id) => {
+      nextFireAt.delete(id);
+      firedAbsolute.delete(id);
+    }
+  });
+
+  // P3-M7：工作台完整设置页。通用设置统一校验并落盘；真实 API Key 永不返回渲染层。
+  ipcMain.handle('workspace-settings:get', () => {
+    const settings = storage.mergeSettings(store.get('settings') || {});
+    return {
+      ok: true,
+      settings: { ...settings, chat: publicChatSettings() },
+      envFile: findEnvFile(),
+      dataPath: app.getPath('userData'),
+      version: app.getVersion()
+    };
+  });
+
+  ipcMain.handle('workspace-settings:save', (e, patch) => {
+    const normalized = storage.normalizeSettingsPatch(store.get('settings') || {}, patch);
+    if (normalized.error) return { ok: false, error: normalized.error };
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'launchAtLogin')) {
+      try {
+        app.setLoginItemSettings({ openAtLogin: patch.launchAtLogin === true });
+      } catch {
+        return { ok: false, error: '无法更新开机启动设置' };
+      }
+    }
+    store.set('settings', normalized.value);
+    applyTop(normalized.value.alwaysOnTop);
+    broadcastDataChanged(BrowserWindow.fromWebContents(e.sender));
+    return { ok: true, settings: { ...normalized.value, chat: publicChatSettings() } };
+  });
 
   // 置顶开关（v2.4）：配置中心「始终置顶」勾选——关闭时降级为普通窗口并停止保活，
   // 把“压过其他置顶窗口”与“让用户主动置顶的应用盖住桌宠”的选择权交给用户

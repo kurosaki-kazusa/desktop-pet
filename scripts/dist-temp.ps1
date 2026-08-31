@@ -25,14 +25,15 @@ Write-Host "[2/4] 打包完成"
 # [3/4] 纯净性校验：顶层只允许白名单文件、main/ 主进程模块、assets 静态素材；node_modules 为生产依赖（electron-store 等，运行时必需）自动跳过；
 # 个人配置/用户数据存于 %APPDATA%，永不进包
 $asarFile = Join-Path $outDir 'win-unpacked\resources\app.asar'
-$whitelist = @('package.json', 'main.js', 'preload.js', 'renderer.js', 'index.html', 'styles.css', 'workspace.html', 'workspace.css', 'workspace.js', 'chat.js')
+$whitelist = @('package.json', 'main.js', 'preload.js', 'renderer.js', 'index.html', 'styles.css', 'workspace.html', 'workspace.css', 'workspace.js', 'task-rules.js', 'chat.js')
 $files = node node_modules\@electron\asar\bin\asar.js list $asarFile | ForEach-Object { $_ -replace '^[\\/]', '' }
-$appFiles = $files | Where-Object { ($_ -notlike 'node_modules*') -and ($_ -notlike 'main/*') -and ($_ -notlike 'main\\*') }
+$appFiles = $files | Where-Object { ($_ -notlike 'node_modules*') -and ($_ -ne 'main') -and ($_ -notlike 'main/*') -and ($_ -notlike 'main\*') }
 $bad = $appFiles | Where-Object { ($whitelist -notcontains $_) -and ($_ -notlike 'assets*') }
 if ($bad) {
   $count = $bad.Count
   $sample = ($bad | Select-Object -First 10) -join ', '
-  Write-Host "[3/4] 警告：顶层发现 $count 个白名单外文件：$sample ...（请检查是否误入个人数据）"
+  Write-Host "[3/4] 纯净校验失败：顶层发现 $count 个白名单外文件：$sample"
+  exit 1
 } else {
   Write-Host "[3/4] 纯净校验通过：顶层共 $($appFiles.Count) 项（$($whitelist -join ' / ') / main / assets），无个人配置/用户数据"
 }
@@ -47,8 +48,8 @@ Write-Host "[4/4] 完成：dist\$($setup.Name)（$([math]::Round($setup.Length /
 $envExample = @'
 # ============================================================
 #  AI 桌宠 · 大模型配置文件（编辑后重启应用生效）
-#  配置中心「大模型」页签保存的值优先级高于本文件；
-#  如需让本文件生效，请清空配置中心页签中对应的保存值。
+#  工作台「设置 / 大模型配置」保存的值优先级高于本文件；
+#  如需让本文件生效，请清空工作台中对应的保存值。
 # ============================================================
 
 # API Key（必填，platform.deepseek.com 获取，形如 sk-xxx）
