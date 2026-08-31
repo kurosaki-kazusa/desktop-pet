@@ -1315,6 +1315,9 @@ async function deleteSpaceFlow(space, count) {
 
 // 模态框提交（method=dialog 需拦截做校验与 IPC，成功后手动关闭）
 $('#space-form').addEventListener('submit', async (e) => {
+  // 「取消」和右上角「×」同为 value=cancel：保留 method=dialog 的原生关闭行为，
+  // 不进入新建/重命名校验，确保用户不做任何操作也能随时退出。
+  if (e.submitter && e.submitter.value === 'cancel') return;
   e.preventDefault();
   const name = $('#space-name').value.trim();
   if (!name) { setFieldError('space-name', '请输入空间名称'); return; }
