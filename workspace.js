@@ -5,7 +5,7 @@
 
 const $ = (sel) => document.querySelector(sel);
 const api = window.petAPI;
-const { shouldMapRangeTask } = window.taskRules;
+const { shouldMapRangeTask, isTaskCompletedOn } = window.taskRules;
 
 const PAGES = ['notes', 'prompts', 'schedule', 'settings'];
 const GLYPHS = ['night', 'mint', 'gold', 'pink', 'cyan'];
@@ -907,12 +907,16 @@ function buildCalendar() {
     const date = new Date(firstCell);
     date.setDate(firstCell.getDate() + index);
     const iso = localIsoDate(date);
+    const completedCount = state.tasks.filter((task) => isTaskCompletedOn(task, iso)).length;
     grid.appendChild(el('button', {
       type: 'button',
       class: `calendar-day ${date.getMonth() !== month ? 'muted' : ''} ${iso === localIsoDate() ? 'today' : ''} ${iso === state.selectedDate ? 'selected' : ''}`,
       dataset: { date: iso },
       onclick: () => openDayPanel(iso)
-    }, el('b', { text: String(date.getDate()) })));
+    }, [
+      el('b', { text: String(date.getDate()) }),
+      completedCount > 0 ? el('span', { class: 'calendar-completed', text: `✓ ${completedCount}` }) : null
+    ]));
   }
 }
 
@@ -929,8 +933,12 @@ function openDayPanel(date) {
   $('#day-panel-title').textContent = `${parsed.getMonth() + 1} 月 ${parsed.getDate()} 日 · ${weekdays[parsed.getDay()]}`;
   const items = [
     ...state.tasks.filter((task) => task && !task.completed && dateInTask(task, date)).map((task) => ({
-      kind: 'task', title: task.title,
+      kind: 'task', title: task.title, completed: false,
       meta: task.kind === 'range' ? `区间 ${shortIsoDate(task.startDate)}—${shortIsoDate(task.endDate)}` : `${task.time || '全天'} · 当日事项`
+    })),
+    ...state.tasks.filter((task) => isTaskCompletedOn(task, date)).map((task) => ({
+      kind: 'completed', title: task.title, completed: true,
+      meta: `已完成 · ${task.kind === 'range' ? '长期待办' : `${task.time || '全天'} · 当日事项`}`
     })),
     ...state.reminders.filter((reminder) => reminder && reminder.type === 'absolute' && reminder.date === date).map((reminder) => ({
       kind: 'reminder', title: reminder.text, meta: `${reminder.time} · 定点提醒${reminder.enabled ? '' : ' · 已停用'}`
@@ -942,7 +950,7 @@ function openDayPanel(date) {
     list.appendChild(el('div', { class: 'day-empty' }, [el('span', { text: '☾' }), el('strong', { text: '当天没有安排' }), el('p', { text: '留一点空白，也是一种节奏。' })]));
   } else {
     items.forEach((item) => list.appendChild(el('article', null, [
-      el('span', { class: `day-item-icon ${item.kind}`, text: item.kind === 'task' ? '✓' : '◷' }),
+      el('span', { class: `day-item-icon ${item.kind}`, text: item.kind === 'completed' ? '✓' : item.kind === 'task' ? '•' : '◷' }),
       el('div', null, [el('strong', { text: item.title }), el('small', { text: item.meta })])
     ])));
   }

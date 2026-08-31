@@ -2,7 +2,7 @@
 const assert = require('assert');
 const Module = require('module');
 const { DEFAULT_SPACE_ID, DEFAULT_NOTE_SPACE_ID } = require('../main/storage');
-const { isIsoDate, shouldMapRangeTask, isAbsoluteReminderDue } = require('../task-rules');
+const { isIsoDate, shouldMapRangeTask, isTaskCompletedOn, isAbsoluteReminderDue } = require('../task-rules');
 
 class MemoryStore {
   constructor(data) { this.data = JSON.parse(JSON.stringify(data)); }
@@ -188,7 +188,16 @@ ok('完成任务后映射规则立即排除', () => {
   const res = call('task:toggle-complete', { id: rangeTaskId, completed: true });
   const task = res.tasks.find((item) => item.id === rangeTaskId);
   assert.equal(task.completed, true);
+  assert(Number.isFinite(task.completedAt));
   assert.equal(shouldMapRangeTask(task, '2026-08-05'), false);
+});
+
+ok('已完成任务按完成日期进入日程回顾', () => {
+  const completedAt = new Date(2026, 7, 31, 15, 30).getTime();
+  assert.equal(isTaskCompletedOn({ completed: true, completedAt, updatedAt: 1 }, '2026-08-31'), true);
+  assert.equal(isTaskCompletedOn({ completed: true, completedAt, updatedAt: 1 }, '2026-08-30'), false);
+  assert.equal(isTaskCompletedOn({ completed: false, completedAt }, '2026-08-31'), false);
+  assert.equal(isTaskCompletedOn({ completed: true, updatedAt: completedAt }, '2026-08-31'), true, '旧完成记录回落 updatedAt');
 });
 
 ok('删除任务后快照同步更新', () => {
@@ -268,4 +277,4 @@ ok('删除任务时可选择保留或一并删除关联提醒', () => {
   assert(res.reminders.some((item) => item.id === standaloneReminderId));
 });
 
-console.log('\n全部通过：24 项');
+console.log('\n全部通过：25 项');

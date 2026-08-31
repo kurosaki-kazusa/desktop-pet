@@ -536,6 +536,7 @@ body.is-maximized [data-window-action="maximize"]::after {
 .calendar-day.today { background: rgba(84, 215, 215, 0.07); box-shadow: inset 0 0 0 1px rgba(84, 215, 215, 0.34); }
 .calendar-day.today b { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: white; background: #319195; }
 .calendar-day.selected { box-shadow: inset 0 0 0 2px rgba(238, 175, 73, 0.58); }
+.calendar-completed { display: block; width: max-content; margin-top: 6px; padding: 1px 5px; border-radius: 999px; color: #287b6f; background: rgba(75, 196, 166, 0.14); font-size: 10px; font-weight: 700; }
 .day-panel { visibility: hidden; min-width: 0; opacity: 0; transition: opacity 140ms ease; }
 .calendar-layout.day-open .day-panel { visibility: visible; opacity: 1; }
 .day-panel > header { display: flex; align-items: center; justify-content: space-between; min-height: 54px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
@@ -546,6 +547,7 @@ body.is-maximized [data-window-action="maximize"]::after {
 #day-panel-list article { display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--line); }
 .day-item-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; }
 .day-item-icon.task { color: #287d80; background: rgba(84, 215, 215, .14); }
+.day-item-icon.completed { color: #287b6f; background: rgba(75, 196, 166, .16); font-weight: 800; }
 .day-item-icon.reminder { color: #9a681f; background: rgba(238, 175, 73, .15); }
 #day-panel-list strong, #day-panel-list small { display: block; }
 #day-panel-list strong { margin-top: 2px; font-size: 10px; }

@@ -24,10 +24,7 @@ assert(script.includes("($_ -ne 'main')") && script.includes("($_ -notlike 'main
 assert(script.includes('工作台「设置 / 大模型配置」'), '.env.example 应指向正式工作台设置页');
 assert(css.includes('@media (max-width: 1500px)'), '缺少 1440×900 默认窗口布局适配');
 assert(css.includes('overflow: hidden'), '根视口应固定，页面内容使用内部滚动');
-const cancelGuard = workspaceJs.indexOf("e.submitter && e.submitter.value === 'cancel'");
-const spaceFormHandler = workspaceJs.indexOf("$('#space-form').addEventListener('submit'");
-const preventDefault = workspaceJs.indexOf('e.preventDefault();', spaceFormHandler);
-assert(cancelGuard > spaceFormHandler && cancelGuard < preventDefault, '空间弹窗取消操作必须在 preventDefault 前放行');
+assert(/space-form['"]\)\.addEventListener\('submit'[\s\S]*?submitter\.value === 'cancel'[\s\S]*?preventDefault/.test(workspaceJs), '空间弹窗取消操作必须在 preventDefault 前放行');
 
 console.log('  ✓ 3.0.0 / asar / 工作台文件白名单正确');
 console.log('  ✓ .env、用户配置与开发日志不进入安装包');

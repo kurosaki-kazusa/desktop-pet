@@ -32,11 +32,20 @@
     return selected >= Math.max(start, end - 6);
   }
 
+  function isTaskCompletedOn(task, isoDate) {
+    if (!task || task.completed !== true || !isIsoDate(isoDate)) return false;
+    const timestamp = Number(task.completedAt) || Number(task.updatedAt);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+    const date = new Date(timestamp);
+    const completedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return completedDate === isoDate;
+  }
+
   function isAbsoluteReminderDue(reminder, isoDate, hhmm) {
     if (!reminder || reminder.enabled === false || reminder.type !== 'absolute') return false;
     if (reminder.date && reminder.date !== isoDate) return false;
     return reminder.time === hhmm;
   }
 
-  return { dayNumber, isIsoDate, shouldMapRangeTask, isAbsoluteReminderDue };
+  return { dayNumber, isIsoDate, shouldMapRangeTask, isTaskCompletedOn, isAbsoluteReminderDue };
 }));

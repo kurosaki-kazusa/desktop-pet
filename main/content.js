@@ -419,7 +419,11 @@ function init(store, options = {}) {
     const index = tasks.findIndex((task) => task && task.id === id);
     if (index < 0) return { ok: false, error: '任务不存在' };
     const completed = data && typeof data.completed === 'boolean' ? data.completed : !tasks[index].completed;
-    tasks[index] = { ...tasks[index], completed, updatedAt: Date.now() };
+    const now = Date.now();
+    const completedAt = completed
+      ? (tasks[index].completed === true && Number(tasks[index].completedAt) > 0 ? tasks[index].completedAt : now)
+      : null;
+    tasks[index] = { ...tasks[index], completed, completedAt, updatedAt: now };
     store.set('tasks', tasks);
     broadcast(BrowserWindow.fromWebContents(e.sender));
     return { ok: true, ...snapshot(store) };
