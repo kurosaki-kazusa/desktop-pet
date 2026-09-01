@@ -1087,6 +1087,12 @@ function setSettingsSaveState(text, tone) {
 function renderGeneralSettings() {
   const settings = state.settings || {};
   $('#setting-default-page').value = ['notes', 'prompts'].includes(settings.defaultPage) ? settings.defaultPage : 'prompts';
+  const uiFontSize = [16, 18, 20].includes(Number(settings.uiFontSize)) ? Number(settings.uiFontSize) : 16;
+  $('#setting-font-size').value = String(uiFontSize);
+  document.documentElement.style.setProperty('--ui-font-base', `${uiFontSize}px`);
+  document.documentElement.style.setProperty('--ui-font-min', `${uiFontSize - 1}px`);
+  document.documentElement.style.setProperty('--ui-font-delta', `${uiFontSize - 14}px`);
+  document.documentElement.style.setProperty('--note-card-min-height', `${208 + ((uiFontSize - 16) / 2) * 20}px`);
   $('#setting-always-top').checked = settings.alwaysOnTop !== false;
   $('#setting-launch-login').checked = settings.launchAtLogin === true;
   const volume = Math.round(Math.max(0, Math.min(1, Number(settings.volume) || 0)) * 100);
@@ -1138,6 +1144,14 @@ $('#setting-default-page').addEventListener('change', async (event) => {
     showToast(`默认打开界面已设为「${page === 'notes' ? '记事本' : '提示词管理工具'}」`);
     showPage(page);
   }
+});
+$('#setting-font-size').addEventListener('change', async (event) => {
+  const uiFontSize = Number(event.target.value);
+  document.documentElement.style.setProperty('--ui-font-base', `${uiFontSize}px`);
+  document.documentElement.style.setProperty('--ui-font-min', `${uiFontSize - 1}px`);
+  document.documentElement.style.setProperty('--ui-font-delta', `${uiFontSize - 14}px`);
+  document.documentElement.style.setProperty('--note-card-min-height', `${208 + ((uiFontSize - 16) / 2) * 20}px`);
+  if (await saveGeneralSettings({ uiFontSize })) showToast(`界面字号已调整为 ${uiFontSize}px`);
 });
 $('#setting-always-top').addEventListener('change', (event) => saveGeneralSettings({ alwaysOnTop: event.target.checked }));
 $('#setting-launch-login').addEventListener('change', (event) => saveGeneralSettings({ launchAtLogin: event.target.checked }));
@@ -1279,7 +1293,7 @@ function renderSpaceManager() {
     ]));
   });
   if (spaces.length === 0) {
-    list.appendChild(el('p', { text: '暂无空间', style: 'color:#939ca1;font-size:11px;margin:6px 0' }));
+    list.appendChild(el('p', { text: '暂无空间', style: 'color:#939ca1;font-size:var(--ui-font-min);margin:6px 0' }));
   }
 }
 

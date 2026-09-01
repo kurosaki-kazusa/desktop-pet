@@ -92,6 +92,7 @@ function main() {
     assert.strictEqual(d.settings.alwaysOnTop, false, '旧 alwaysOnTop=false 保留');
     assert.deepStrictEqual(d.settings.chat, { apiKey: 'sk-old', baseUrl: '', model: '', systemPrompt: '' }, '旧 chat 配置补齐字段');
     assert.strictEqual(d.settings.defaultPage, 'prompts');
+    assert.strictEqual(d.settings.uiFontSize, 16);
     assert.strictEqual(d.settings.launchAtLogin, false);
     assert.strictEqual(d.settings.reducedMotion, false);
     assert.deepStrictEqual(d.settings.workspaceWindow, { bounds: null, maximized: false, lastPage: 'prompts' });
@@ -257,14 +258,16 @@ function main() {
     const s = S.mergeSettings(undefined);
     assert.deepStrictEqual(s, S.SETTINGS_DEFAULTS);
     assert.strictEqual(S.SETTINGS_DEFAULTS.defaultPage, 'prompts');
+    assert.strictEqual(S.SETTINGS_DEFAULTS.uiFontSize, 16);
     ok('mergeSettings：空输入返回完整默认值');
   }
 
   // ---------- 9. P3-M7 通用设置补丁校验 ----------
   {
-    const r = S.normalizeSettingsPatch({ volume: 0.5, chat: { apiKey: 'secret' } }, { defaultPage: 'notes', volume: 0, reducedMotion: true });
+    const r = S.normalizeSettingsPatch({ volume: 0.5, chat: { apiKey: 'secret' } }, { defaultPage: 'notes', uiFontSize: 18, volume: 0, reducedMotion: true });
     assert.strictEqual(r.error, undefined);
     assert.strictEqual(r.value.defaultPage, 'notes');
+    assert.strictEqual(r.value.uiFontSize, 18);
     assert.strictEqual(r.value.volume, 0);
     assert.strictEqual(r.value.reducedMotion, true);
     assert.strictEqual(r.value.chat.apiKey, 'secret', '局部设置保存不得覆盖大模型配置');
@@ -273,7 +276,8 @@ function main() {
   {
     assert.match(S.normalizeSettingsPatch({}, { defaultPage: 'settings' }).error, /默认打开界面/);
     assert.match(S.normalizeSettingsPatch({}, { volume: 1.1 }).error, /音量/);
-    ok('设置补丁：拒绝非法默认页与越界音量');
+    assert.match(S.normalizeSettingsPatch({}, { uiFontSize: 17 }).error, /界面字号/);
+    ok('设置补丁：拒绝非法默认页、字号与越界音量');
   }
   {
     assert.match(S.normalizeSettingsPatch({}, { alwaysOnTop: 'yes' }).error, /布尔值/);

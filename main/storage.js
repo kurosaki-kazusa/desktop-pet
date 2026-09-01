@@ -14,7 +14,7 @@ const DEFAULT_SPACE_NAME = '常用命令';
 const DEFAULT_NOTE_SPACE_ID = 'note-space-default';
 const DEFAULT_NOTE_SPACE_NAME = '默认记事';
 
-// settings 默认值：workspaceWindow/defaultPage/launchAtLogin/reducedMotion 为三期新增，
+// settings 默认值：workspaceWindow/defaultPage/launchAtLogin/reducedMotion/uiFontSize 为三期新增，
 // volume/alwaysOnTop/chat/windowPos 沿用二期语义
 const SETTINGS_DEFAULTS = {
   windowPos: null,
@@ -23,6 +23,7 @@ const SETTINGS_DEFAULTS = {
   alwaysOnTop: true,
   workspaceWindow: { bounds: null, maximized: false, lastPage: 'prompts' },
   defaultPage: 'prompts',
+  uiFontSize: 16,
   launchAtLogin: false,
   reducedMotion: false
 };
@@ -58,11 +59,13 @@ function normalizeSettingsPatch(current, patch) {
   const base = mergeSettings(plainObject(current));
   const d = plainObject(patch);
   if (d.defaultPage != null && !['notes', 'prompts'].includes(d.defaultPage)) return { error: '默认打开界面无效' };
+  if (d.uiFontSize != null && ![16, 18, 20].includes(Number(d.uiFontSize))) return { error: '界面字号无效' };
   if (d.volume != null && (!Number.isFinite(Number(d.volume)) || Number(d.volume) < 0 || Number(d.volume) > 1)) {
     return { error: '提醒音量须在 0 到 1 之间' };
   }
   const value = { ...base };
   if (d.defaultPage != null) value.defaultPage = d.defaultPage;
+  if (d.uiFontSize != null) value.uiFontSize = Number(d.uiFontSize);
   if (d.volume != null) value.volume = Number(d.volume);
   for (const key of ['alwaysOnTop', 'launchAtLogin', 'reducedMotion']) {
     if (d[key] != null) {

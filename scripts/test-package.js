@@ -24,10 +24,12 @@ assert(script.includes("($_ -ne 'main')") && script.includes("($_ -notlike 'main
 assert(script.includes('工作台「设置 / 大模型配置」'), '.env.example 应指向正式工作台设置页');
 assert(css.includes('@media (max-width: 1500px)'), '缺少 1440×900 默认窗口布局适配');
 assert(css.includes('overflow: hidden'), '根视口应固定，页面内容使用内部滚动');
+assert(css.includes('min-height: var(--note-card-min-height)') && css.includes('.note-excerpt { flex: 0 0 auto;'), '字号放大时笔记卡片必须同步增高且摘要不可被 flex 压缩');
 assert(/space-form['"]\)\.addEventListener\('submit'[\s\S]*?submitter\.value === 'cancel'[\s\S]*?preventDefault/.test(workspaceJs), '空间弹窗取消操作必须在 preventDefault 前放行');
 
 console.log('  ✓ 3.0.0 / asar / 工作台文件白名单正确');
 console.log('  ✓ .env、用户配置与开发日志不进入安装包');
 console.log('  ✓ asar 多余文件会阻断打包，1440×900 布局适配存在');
+console.log('  ✓ 笔记卡片随字号档位增高，标题、摘要与页脚保持独立空间');
 console.log('  ✓ 空间弹窗取消/关闭不受保存校验拦截');
-console.log('\n全部通过：4 项');
+console.log('\n全部通过：5 项');
